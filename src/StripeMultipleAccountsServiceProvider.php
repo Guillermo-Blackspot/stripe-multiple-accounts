@@ -39,5 +39,10 @@ class StripeMultipleAccountsServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/stripe-multiple-accounts.php' => base_path('config/stripe-multiple-accounts'),
         ], ['stripe-multiple-accounts', 'stripe-multiple-accounts:config']);
+
+        $this->publishes([
+            __DIR__.'/../stubs/ServiceIntegration.stub' => base_path('app/Models/Morphs/ServiceIntegration.php'),
+            __DIR__.'/../stubs/UserServiceIntegration.stub' => base_path('app/Models/UserServiceIntegrationAccount.php'),
+        ], ['stripe-multiple-accounts', 'stripe-multiple-accounts:copy-models']);
     }
 }
