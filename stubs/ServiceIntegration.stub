@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Models\Morphs;
+
+use App\Models\UserServiceIntegrationAccount;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+
+class ServiceIntegration extends Model
+{
+    /** 
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'service_integrations';
+    public const TABLE_NAME = 'service_integrations';
+
+    /**
+     * The attributes that aren't mass assignable.
+     *
+     * @var array
+     */
+    protected $guarded = [];
+
+
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = true;
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'payload' => 'array',
+    ];
+
+    /**
+     * Overwrite cast json method
+     */
+    protected function asJson($value)
+    {
+        return json_encode($value, JSON_UNESCAPED_UNICODE);
+    }
+
+
+    public function getShortenedPayloadAttribute()
+    {
+        $shortened = [];
+
+        foreach ($this->payload as $property => $value) {
+            $shortened[$property] = Str::limit($value, 15);
+        }
+
+        return $shortened;
+    }
+ 
+    /**
+     * Get the owner of the service integration
+     */
+    public function owner()
+    {
+        return $this->morphTo('owner');
+    }
+
+    public function user_service_integrations_accounts()
+    {
+        return $this->hasMany(UserServiceIntegrationAccount::class, 'service_integration_id');
+    }
+}

@@ -1,0 +1,29 @@
+{
+    "name": "blackspot/stripe-multiple-accounts",
+    "description": "Allow manages many stripe accounts (Customers, PaymentMethods, etc..)",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Blackspot\\StripeMultipleAccounts\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Guillermo Rodriguez",
+            "email": "guillermo.blackspot@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "BlackSpot\\StripeMultipleAccounts\\StripeMultipleAccountsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=7.3",
+        "stripe/stripe-php": "^9.8"
+    }
+}
