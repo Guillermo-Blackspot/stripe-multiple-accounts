@@ -68,11 +68,23 @@ trait HandlesServiceIntegrations
             return null;
         }
 
-        return DB::table(config('stripe-multiple-accounts.stripe_integrations.table'))
+        $service = DB::table(config('stripe-multiple-accounts.stripe_integrations.table'))
                     ->where('owner_type', $this->getStripeServiceIntegrationMorphType())
                     ->where('owner_id', $this->getStripeServiceIntegrationMorphId())
                     ->where('name', 'Stripe')
                     ->where('short_name', 'str')
                     ->first();
+
+        if (is_null($service)) {
+            return ;
+        }
+
+        $payloadColumn = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
+
+        if (isset($service->{$payloadColumn})) {
+            $service->{$payloadColumn}.'_decoded' = json_decode($payloadColumn, true);
+        }
+
+        return $service;
     }
 }
