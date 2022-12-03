@@ -49,6 +49,8 @@ trait ManagesCustomerInformation
     /**
      * Get the related customer to stripe
      * 
+     * Fetch to stripe
+     * 
      * @param int $serviceIntegrationId
      * @param array|null $opts
      * @return \Stripe\Customer|null
@@ -94,6 +96,8 @@ trait ManagesCustomerInformation
     /**
      * Create or get the related stripe customer instance
      * 
+     * Send or fetch to stripe
+     * 
      * @param int $stripeAccountId
      * @return \Stripe\Customer|null
      */
@@ -120,6 +124,8 @@ trait ManagesCustomerInformation
     
     /**
      * Create a stripe customer with the current user data
+     * 
+     * Send to stripe
      * 
      * @param int|null $serviceIntegrationId
      * @param array $opts

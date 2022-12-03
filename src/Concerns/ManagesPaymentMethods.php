@@ -15,13 +15,15 @@ trait ManagesPaymentMethods
     /**
      * Add stripe payment method resource
      *  
+     * Send to stripe
+     * 
      * @param int|string|null $serviceIntegrationId or you can pass directly the $tokenId instead it
      * @param string|null $tokenId
      * @param array $opts
      * @throws \Stripe\Exception\ApiErrorException
      * @return \Stripe\BankAccount|\Stripe\Card|\Stripe\Source
      */
-    public function createStripePaymentMethodResource($serviceIntegrationId = null, $tokenId = null, $opts = [])
+    public function createStripeCustomerPaymentMethodResource($serviceIntegrationId = null, $tokenId = null, $opts = [])
     {
         if (!is_numeric($serviceIntegrationId)) {
             $tokenId = $serviceIntegrationId;
@@ -47,6 +49,8 @@ trait ManagesPaymentMethods
 
     /**
      * Get the related stripe customer payment methods
+     * 
+     * Fetch from stripe
      * 
      * @param int|null 
      * @param array 
