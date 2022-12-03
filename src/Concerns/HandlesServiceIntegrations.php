@@ -68,7 +68,7 @@ trait HandlesServiceIntegrations
             return null;
         }
 
-        return DB::table(config('stripe-multiple-accounts.service_integrations.table'))
+        return DB::table(config('stripe-multiple-accounts.stripe_integrations.table'))
                     ->where('owner_type', $this->getStripeServiceIntegrationMorphType())
                     ->where('owner_id', $this->getStripeServiceIntegrationMorphId())
                     ->where('name', 'Stripe')
