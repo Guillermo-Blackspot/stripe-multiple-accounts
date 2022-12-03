@@ -17,11 +17,19 @@ trait ManagesAuthCredentials
      */
     public function getRelatedStripeSecretKey($serviceIntegrationId = null)
     {
-        $payloadColumn = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
-        $stripeSecret  = config('stripe-multiple-accounts.stripe_integrations.payload.stripe_secret', 'stripe_secret');
-        $payload       = optional(optional($this->resolveStripeServiceIntegration($serviceIntegrationId))->{$payloadColumn});
+        $payloadColumn     = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
+        $stripeSecret      = config('stripe-multiple-accounts.stripe_integrations.payload.stripe_secret', 'stripe_secret');
+        $stripeIntegration = $this->resolveStripeServiceIntegration($serviceIntegrationId);
 
-        return $payload instanceof \Illuminate\Support\Optional || $payload == null ? null : json_decode($payload)[$stripeSecret];
+        if (is_null($stripeIntegration)) {
+            return ;
+        }
+
+        if (!isset($stripeIntegration->{$payloadColumn})) {
+            return ;
+        }
+
+        return json_decode($stripeIntegration->{$payloadColumn}, true)[$stripeSecret];
     }
 
     /**
@@ -34,8 +42,16 @@ trait ManagesAuthCredentials
     {
         $payloadColumn    = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
         $stripePublicKey  = config('stripe-multiple-accounts.stripe_integrations.payload.stripe_key', 'stripe_key');
-        $payload          = optional(optional($this->resolveStripeServiceIntegration($serviceIntegrationId))->{$payloadColumn});
+        $stripeIntegration = $this->resolveStripeServiceIntegration($serviceIntegrationId);
 
-        return $payload instanceof \Illuminate\Support\Optional || $payload == null ? null : json_decode($payload)[$stripePublicKey];
+        if (is_null($stripeIntegration)) {
+            return ;
+        }
+
+        if (!isset($stripeIntegration->{$payloadColumn})) {
+            return ;
+        }
+
+        return json_decode($stripeIntegration->{$payloadColumn}, true)[$stripePublicKey];
     }
 }
