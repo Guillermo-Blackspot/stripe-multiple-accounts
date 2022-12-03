@@ -31,4 +31,83 @@ one to many relationship.
 
 In this table we relate the user_id with the service_integration_id (Stripe or Another..) and with a extra column that contains the "real relation" or the "multiplicity" (account_id)
 
+## Methods
 
+<br>
+
+the model needs use the ``\Blackspot\StripeMultipleAccounts\Billable`` Trait
+<br>
+
+...
+```php
+    use \Blackspot\StripeMultipleAccounts\Billable;
+
+    class User extends Model {
+        use Billable;
+    }
+```
+...
+
+<br>
+
+All available methods
+
+<br>
+
+...
+```php
+
+    /** Note: 
+     * 
+     * All the methods that fetch or send data to stripe 
+     * can be throws exceptions
+     * 
+     * getRelatedStripeCustomer
+     * createOrGetRelatedStripeCustomer
+     * getRelatedStripeCustomerPaymentMethods
+     * attachStripeCustomerPaymentMethodResource
+     * detachStripeCustomerPaymentMethodResource
+     */
+
+    $user = \App\Models\User::first();
+
+    // or
+
+    $user = \Auth::user();
+
+    $user->getRelatedStripeSecretKey();
+
+    $user->getRelatedStripePublicKey();
+
+    $user->getStripeServiceIntegration();
+
+    $user->getStripeClientConnection();
+
+    $user->getRelatedStripeCustomer();
+
+    $user->getRelatedStripeCustomerId();
+
+    $user->createOrGetRelatedStripeCustomer();
+
+    $user->getRelatedStripeCustomerPaymentMethods();
+
+    $user->attachStripeCustomerPaymentMethodResource();
+
+    $user->detachStripeCustomerPaymentMethodResource();    
+```
+
+...
+
+## _Publishables_
+
+_Config_
+```
+php artisan vendor:publish --tag=stripe-multiple-accounts:config
+```
+
+<br>
+
+_Stubs_
+```
+php artisan vendor:publish --tag=stripe-multiple-accounts:view-stubs
+```
