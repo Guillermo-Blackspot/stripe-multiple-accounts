@@ -35,7 +35,7 @@ In this table we relate the user_id with the service_integration_id (Stripe or A
 
 <br>
 
-the model needs use the ``\Blackspot\StripeMultipleAccounts\Billable`` Trait
+the model needs use the ``\BlackSpot\StripeMultipleAccounts\Billable`` Trait
 <br>
 
 ...
