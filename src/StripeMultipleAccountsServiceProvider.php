@@ -37,7 +37,7 @@ class StripeMultipleAccountsServiceProvider extends ServiceProvider
     protected function registerPublishables()
     {
         $this->publishes([
-            __DIR__.'/../config/stripe-multiple-accounts.php' => base_path('config/stripe-multiple-accounts'),
+            __DIR__.'/../config/stripe-multiple-accounts.php' => base_path('config/stripe-multiple-accounts.php'),
         ], ['stripe-multiple-accounts', 'stripe-multiple-accounts:config']);
 
         $this->publishes([
