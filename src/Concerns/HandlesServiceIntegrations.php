@@ -82,7 +82,7 @@ trait HandlesServiceIntegrations
         $payloadColumn = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
 
         if (isset($service->{$payloadColumn})) {
-            $service->{$payloadColumn}.'_decoded' = json_decode($payloadColumn, true);
+            $service->{$payloadColumn.'_decoded'} = json_decode($payloadColumn, true);
         }
 
         return $service;
