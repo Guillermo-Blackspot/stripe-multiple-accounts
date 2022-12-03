@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Blackspot\\StripeMultipleAccounts\\": "src/"
+            "BlackSpot\\StripeMultipleAccounts\\": "src/"
         }
     },
     "authors": [

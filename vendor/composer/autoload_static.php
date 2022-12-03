@@ -13,7 +13,7 @@ class ComposerStaticInit2b3c63e91ffb3bb1c82a34efb5f86e14
         ),
         'B' => 
         array (
-            'Blackspot\\StripeMultipleAccounts\\' => 33,
+            'BlackSpot\\StripeMultipleAccounts\\' => 33,
         ),
     );
 
@@ -22,7 +22,7 @@ class ComposerStaticInit2b3c63e91ffb3bb1c82a34efb5f86e14
         array (
             0 => __DIR__ . '/..' . '/stripe/stripe-php/lib',
         ),
-        'Blackspot\\StripeMultipleAccounts\\' => 
+        'BlackSpot\\StripeMultipleAccounts\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
         ),
