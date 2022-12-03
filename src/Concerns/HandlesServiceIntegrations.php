@@ -15,8 +15,8 @@ trait HandlesServiceIntegrations
 {   
     private $stripeServiceIntegrationRecentlyFetched = null;
     
-    abstract function getServiceIntegrationMorphId();
-    abstract function getServiceIntegrationMorphType();
+    abstract function getStripeServiceIntegrationMorphId();
+    abstract function getStripeServiceIntegrationMorphType();
     
     /**
      * Get the stripe client connection
@@ -64,13 +64,13 @@ trait HandlesServiceIntegrations
      */
     public function getStripeServiceIntegration()
     {
-        if ($this->getServiceIntegrationMorphId() == null) {
+        if ($this->getStripeServiceIntegrationMorphId() == null) {
             return null;
         }
 
         return DB::table(config('stripe-multiple-accounts.service_integrations.table'))
-                    ->where('owner_type', $this->getServiceIntegrationMorphType())
-                    ->where('owner_id', $this->getServiceIntegrationMorphId())
+                    ->where('owner_type', $this->getStripeServiceIntegrationMorphType())
+                    ->where('owner_id', $this->getStripeServiceIntegrationMorphId())
                     ->where('name', 'Stripe')
                     ->where('short_name', 'str')
                     ->first();
