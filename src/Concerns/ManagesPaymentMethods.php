@@ -23,7 +23,7 @@ trait ManagesPaymentMethods
      * @throws \Stripe\Exception\ApiErrorException
      * @return \Stripe\BankAccount|\Stripe\Card|\Stripe\Source
      */
-    public function createStripeCustomerPaymentMethodResource($serviceIntegrationId = null, $tokenId = null, $opts = [])
+    public function attachStripeCustomerPaymentMethodResource($serviceIntegrationId = null, $tokenId = null, $opts = [])
     {
         if (!is_numeric($serviceIntegrationId)) {
             $tokenId = $serviceIntegrationId;
@@ -52,8 +52,8 @@ trait ManagesPaymentMethods
      * 
      * Fetch from stripe
      * 
-     * @param int|null 
-     * @param array 
+     * @param int|null $serviceIntegrationId
+     * @param array $opts
      * @return \Stripe\Collection
      */
     public function getRelatedStripeCustomerPaymentMethods($serviceIntegrationId = null, $opts = ['type' => 'card'])
@@ -73,5 +73,31 @@ trait ManagesPaymentMethods
         }
 
         return (new StripeClient($stripeSecretKey))->customers->allPaymentMethods($stripeCustomerId, $opts);
+    }
+
+    /**
+     * Detach payment method from stripe customer payment methods
+     * 
+     * Send to stripe
+     * 
+     * @param int|string|null $serviceIntegrationId or you can pass directly the $paymentMethodId instead it
+     * @param string|null $paymentMethodId
+     * @param array $opts
+     * @return \Stripe\PaymentMethod|null
+     */
+    public function detachStripeCustomerPaymentMethodResource($serviceIntegrationId = null, $paymentMethodId = null, $opts = [])
+    {
+        if (!is_numeric($serviceIntegrationId)) {
+            $paymentMethodId = $serviceIntegrationId;
+            $serviceIntegrationId = null;
+        }
+
+        $stripeSecretKey = $this->getRelatedStripeSecretKey($serviceIntegrationId);
+
+        if ($stripeSecretKey == null) {
+            return null;
+        }
+
+        return (new StripeClient($stripeSecretKey))->paymentMethods->detach($paymentMethodId, null, $opts);
     }
 }
