@@ -39,7 +39,19 @@ return [
         /**
          * The service integrations primary key
          */
-        'primary_key' => 'id'
+        'primary_key' => 'id',
+
+        /**
+         * Payload column
+         * 
+         * must be a json column
+         */        
+        'payload' => [
+            'column'         => 'payload',
+            'stripe_key'     => 'stripe_key',
+            'stripe_secret'  => 'stripe_secret',
+            'webhook_secret' => 'stripe_webhook_secret',
+        ]
     ]
 
 
