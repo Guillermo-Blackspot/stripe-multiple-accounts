@@ -52,6 +52,8 @@ trait HandlesServiceIntegrations
                                                                     ? $this->getStripeServiceIntegration()
                                                                     : DB::table(config('stripe-multiple-accounts.stripe_integrations.table')) 
                                                                         ->where(config('stripe-multiple-accounts.stripe_integrations.primary_key'), $serviceIntegrationId)
+                                                                        ->where('name', 'Stripe')
+                                                                        ->where('short_name', 'str')
                                                                         ->first();
     }
 
