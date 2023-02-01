@@ -50,8 +50,8 @@ trait HandlesServiceIntegrations
 
         return $this->stripeServiceIntegrationRecentlyFetched = ($serviceIntegrationId == null)
                                                                     ? $this->getStripeServiceIntegration()
-                                                                    : DB::table(config('stripe-multiple-accounts.service_integrations.table')) 
-                                                                        ->where(config('stripe-multiple-accounts.service_integrations.primary_key'), $serviceIntegrationId)
+                                                                    : DB::table(config('stripe-multiple-accounts.stripe_integrations.table')) 
+                                                                        ->where(config('stripe-multiple-accounts.stripe_integrations.primary_key'), $serviceIntegrationId)
                                                                         ->first();
     }
 
