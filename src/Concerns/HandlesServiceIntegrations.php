@@ -48,13 +48,7 @@ trait HandlesServiceIntegrations
             return $this->stripeServiceIntegrationRecentlyFetched;
         }
 
-        return $this->stripeServiceIntegrationRecentlyFetched = ($serviceIntegrationId == null)
-                                                                    ? $this->getStripeServiceIntegration()
-                                                                    : DB::table(config('stripe-multiple-accounts.stripe_integrations.table')) 
-                                                                        ->where(config('stripe-multiple-accounts.stripe_integrations.primary_key'), $serviceIntegrationId)
-                                                                        ->where('name', 'Stripe')
-                                                                        ->where('short_name', 'str')
-                                                                        ->first();
+        return $this->stripeServiceIntegrationRecentlyFetched = $this->getStripeServiceIntegration($serviceIntegrationId);
     }
 
     /**
@@ -62,20 +56,22 @@ trait HandlesServiceIntegrations
      * 
      * Scoping by \App\Models\Subsidiary\Subsidiary
      * 
+     * @param int|null $serviceIntegrationId
+     * 
      * @return object|null
      */
-    public function getStripeServiceIntegration()
+    public function getStripeServiceIntegration($serviceIntegrationId = null)
     {
-        if ($this->getStripeServiceIntegrationMorphId() == null) {
-            return null;
-        }
-
-        $service = DB::table(config('stripe-multiple-accounts.stripe_integrations.table'))
-                    ->where('owner_type', $this->getStripeServiceIntegrationMorphType())
-                    ->where('owner_id', $this->getStripeServiceIntegrationMorphId())
+        $service = null;
+        $query   = DB::table(config('stripe-multiple-accounts.stripe_integrations.table'))
                     ->where('name', 'Stripe')
-                    ->where('short_name', 'str')
-                    ->first();
+                    ->where('short_name', 'str');
+
+        if (!is_null($serviceIntegrationId)) {
+            $service = $query->where(config('stripe-multiple-accounts.stripe_integrations.primary_key'), $serviceIntegrationId)->first();  
+        }else if ($this->getStripeServiceIntegrationMorphId() != null){            
+            $service = $query->where('owner_type', $this->getStripeServiceIntegrationMorphType())->where('owner_id', $this->getStripeServiceIntegrationMorphId())->first();
+        }
 
         if (is_null($service)) {
             return ;
