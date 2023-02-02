@@ -41,7 +41,7 @@ class StripeMultipleAccountsServiceProvider extends ServiceProvider
         ], ['stripe-multiple-accounts', 'stripe-multiple-accounts:config']);
 
         $this->publishes([
-            __DIR__.'/../stubs' => base_path('app/stubs/stripe-multiple-accounts')
-        ], ['stripe-multiple-accounts', 'stripe-multiple-accounts:view-stubs']);
+            __DIR__.'/../database/migrations' => base_path('database/migrations')
+        ], ['stripe-multiple-accounts', 'stripe-multiple-accounts:migrations']);
     }
 }
