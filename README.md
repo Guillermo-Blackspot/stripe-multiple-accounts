@@ -75,25 +75,42 @@ All available methods
 
     $user = \Auth::user();
 
+    //:  \Models\ServiceIntegration
+    $user->resolveStripeServiceIntegration(); 
+    
+    $user->getStripeServiceIntegration();
+    
+    //:  String
     $user->getRelatedStripeSecretKey();
 
     $user->getRelatedStripePublicKey();
 
-    $user->getStripeServiceIntegration();
+    //:  \Stripe\Customer|null
+    $user->relateCustomerWithStripeAccount(); // Alias of createStripeCustomer
 
-    $user->getStripeClientConnection();
+    $user->createOrGetRelatedStripeCustomer();
+    
+    $user->createStripeCustomer();
+
+    $user->stripeCustomerExists(); // Determine if stripe customer exists
 
     $user->getRelatedStripeCustomer();
 
-    $user->getRelatedStripeCustomerId();
+    $user->getRelatedStripeCustomerId(); // related customer_id
 
-    $user->createOrGetRelatedStripeCustomer();
+    //:   \Stripe\StripeClient
+    $user->getStripeClientConnection();
 
-    $user->getRelatedStripeCustomerPaymentMethods();
+    //:   PaymentMethod
+    $user->getRelatedStripeCustomerPaymentMethods(); // \Stripe\Collection
 
-    $user->attachStripeCustomerPaymentMethodResource();
+    $user->attachStripeCustomerPaymentMethodResource(); // \Stripe\BankAccount|\Stripe\Card|\Stripe\Source|null
 
-    $user->detachStripeCustomerPaymentMethodResource();    
+    $user->detachStripeCustomerPaymentMethodResource(); // \Stripe\PaymentMethod|null
+
+
+    //:   void
+    $user->clearStripeBillableCache(); // Clear the memory cache
 ```
 
 ...
@@ -107,7 +124,7 @@ php artisan vendor:publish --tag=stripe-multiple-accounts:config
 
 <br>
 
-_Stubs_
+_Migrations_
 ```
-php artisan vendor:publish --tag=stripe-multiple-accounts:view-stubs
+php artisan vendor:publish --tag=stripe-multiple-accounts:migrations
 ```
