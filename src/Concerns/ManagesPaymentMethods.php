@@ -21,7 +21,7 @@ trait ManagesPaymentMethods
      * @param string|null $tokenId
      * @param array $opts
      * @throws \Stripe\Exception\ApiErrorException
-     * @return \Stripe\BankAccount|\Stripe\Card|\Stripe\Source
+     * @return \Stripe\BankAccount|\Stripe\Card|\Stripe\Source|null
      */
     public function attachStripeCustomerPaymentMethodResource($serviceIntegrationId = null, $tokenId = null, $opts = [])
     {
@@ -30,10 +30,10 @@ trait ManagesPaymentMethods
             $serviceIntegrationId = null;
         }
 
-        $stripeSecretKey = $this->getRelatedStripeSecretKey($serviceIntegrationId);
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
-        if ($stripeSecretKey == null) {
-            return null;
+        if (is_null($stripeClientConnection)) {
+            return ;
         }
 
         $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
@@ -44,7 +44,7 @@ trait ManagesPaymentMethods
 
         $opts['source'] = $tokenId;
     
-        return (new StripeClient($stripeSecretKey))->customers->createSource($stripeCustomerId, $opts);
+        return $stripeClientConnection->customers->createSource($stripeCustomerId, $opts);
     }
 
     /**
@@ -57,22 +57,22 @@ trait ManagesPaymentMethods
      * @return \Stripe\Collection
      */
     public function getRelatedStripeCustomerPaymentMethods($serviceIntegrationId = null, $opts = ['type' => 'card'])
-    {        
-        $stripeSecretKey       = $this->getRelatedStripeSecretKey($serviceIntegrationId);
-        $emptyStripeCollection = new Collection();
+    {                
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+        $emptyStripeCollection  = new Collection();
         $emptyStripeCollection->data = [];
 
-        if (is_null($stripeSecretKey)) {
+        if (is_null($stripeClientConnection)) {
             return $emptyStripeCollection;
-        }        
-
+        }
+        
         $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return $emptyStripeCollection;
         }
 
-        return (new StripeClient($stripeSecretKey))->customers->allPaymentMethods($stripeCustomerId, $opts);
+        return $stripeClientConnection->customers->allPaymentMethods($stripeCustomerId, $opts);
     }
 
     /**
@@ -92,12 +92,12 @@ trait ManagesPaymentMethods
             $serviceIntegrationId = null;
         }
 
-        $stripeSecretKey = $this->getRelatedStripeSecretKey($serviceIntegrationId);
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
-        if ($stripeSecretKey == null) {
-            return null;
+        if (is_null($stripeClientConnection)) {
+            return ;
         }
 
-        return (new StripeClient($stripeSecretKey))->paymentMethods->detach($paymentMethodId, null, $opts);
+        return $stripeClientConnection->paymentMethods->detach($paymentMethodId, null, $opts);
     }
 }
