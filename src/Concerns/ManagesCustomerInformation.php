@@ -114,7 +114,7 @@ trait ManagesCustomerInformation
         }
 
         if (is_null($serviceIntegrationId)) {
-            $serviceIntegrationId = optional($this->resolveStripeServiceIntegration())->id;
+            $serviceIntegrationId = optional($this->resolveStripeServiceIntegration($serviceIntegrationId))->id;
         }
 
         if ($serviceIntegrationId == null) {
@@ -208,7 +208,7 @@ trait ManagesCustomerInformation
         }
         
         $stripeCustomer     = $stripeClientConnection->customers->create($opts);
-        $serviceIntegration = $this->resolveStripeServiceIntegration();
+        $serviceIntegration = $this->resolveStripeServiceIntegration($serviceIntegrationId);
 
         // Updating cache
         $this->setStripeCustomerInstanceToCache($stripeCustomer);
