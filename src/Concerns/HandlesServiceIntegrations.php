@@ -66,12 +66,12 @@ trait HandlesServiceIntegrations
             return $this->stripeServiceIntegrationRecentlyFetched;
         }
         
-        $serviceIntegrationTableName = (new config('stripe-multiple-accounts.relationship_models.stripe_accounts'))::TABLE_NAME;
-
-        $service = null;
-        $query   = DB::table($serviceIntegrationTableName)
-                    ->where('name', 'Stripe')
-                    ->where('short_name', 'str');
+        $serviceIntegrationModel     = config('stripe-multiple-accounts.relationship_models.stripe_accounts');
+        $serviceIntegrationTableName = $serviceIntegrationModel::TABLE_NAME;
+        $service                     = null;
+        $query                       = DB::table($serviceIntegrationTableName)
+                                        ->where('name', 'Stripe')
+                                        ->where('short_name', 'str');
 
         if (!is_null($serviceIntegrationId)) {
             $service = $query->where('id', $serviceIntegrationId)->first();  
