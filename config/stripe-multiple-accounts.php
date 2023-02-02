@@ -17,6 +17,7 @@ return [
         'customers'          => ServiceIntegrationUser::class,
         'subscriptions'      => ServiceIntegrationSubscription::class,
         'subscription_items' => ServiceIntegrationSubscriptionItem::class,
+        'local_users'        => \App\Models\User::class
     ],
  
 
