@@ -36,7 +36,10 @@ trait ManagesCustomerInformation
     /**
      * Create customer in stripe with the current user data
      * 
-     * @param int $stripeAccountId
+     * Send data to stripe
+     * Store result in to cache
+     * 
+     * @param int|null $serviceIntegrationId
      * @param array|null $opts
      * @return \Stripe\Customer|null
      */
@@ -45,31 +48,61 @@ trait ManagesCustomerInformation
         return $this->createStripeCustomer($serviceIntegrationId, $opts);
     }
 
+    /**
+     * Determine if the user exists as customer in the service integration
+     * 
+     * Fetch to local database
+     * 
+     * @param int|null $serviceIntegrationId
+     * @return boolean
+     */
+    public function stripeCustomerExists($serviceIntegrationId = null)
+    {
+        $this->service_integration_users()
+                ->where('service_integration_id', $serviceIntegrationId)
+                ->exists();
+    }
 
     /**
      * Get the related customer to stripe
      * 
      * Fetch to stripe
+     * Store result in to cache
      * 
-     * @param int $serviceIntegrationId
+     * @param int|null $serviceIntegrationId
      * @param array|null $opts
      * @return \Stripe\Customer|null
      */
     public function getRelatedStripeCustomer($serviceIntegrationId = null, $opts = [])
     {   
-        $stripeSecretKey = $this->getRelatedStripeSecretKey($serviceIntegrationId);
+        if ($this->stripeCustomerRecentlyFetched instanceof Customer) {
+            return $this->stripeCustomerRecentlyFetched;
+        }
 
-        if (is_null($stripeSecretKey)) {
+        $stripeClientConnection = $this->getStripeClientConnection();
+
+        if (is_null($stripeClientConnection)) {
             return ;
         }
 
         $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
 
-        return (new StripeClient($stripeSecretKey))->customers->retrieve($stripeCustomerId, null, $opts);
+        if (is_null($stripeCustomerId)) {
+            return ;
+        }
+
+        $stripeCustomer = $stripeClientConnection->customers->retrieve($stripeCustomerId, null, $opts);
+
+        $this->setStripeCustomerInstanceToCache($stripeCustomer);
+
+        return $stripeCustomer;
     }
         
     /**
      * Get the stripe customer id (cus_..)
+     * 
+     * Fetch to local database
+     * Store result in to cache
      * 
      * @param int|null $serviceIntegrationId
      * @return string|null
@@ -87,18 +120,23 @@ trait ManagesCustomerInformation
         if ($serviceIntegrationId == null) {
             return null;
         }
+        
+        $stripeCustomerId = $this->service_integration_users()
+                                ->where('service_integration_id', $serviceIntegrationId)
+                                ->value('customer_id');
 
-        return $this->stripeCustomerIdRecentlyFetched = DB::table(config('stripe-multiple-accounts.multiple_customers_id.customer_accounts_table'))
-                    ->where(config('stripe-multiple-accounts.multiple_customers_id.foreign_stripe_integration_id'), $serviceIntegrationId)
-                    ->value(config('stripe-multiple-accounts.multiple_customers_id.customer_id_column'));
+        $this->setStripeCustomerIdToCache($stripeCustomerId);
+
+        return $stripeCustomerId;
     }
 
     /**
      * Create or get the related stripe customer instance
      * 
      * Send or fetch to stripe
+     * Store result in to cache
      * 
-     * @param int $stripeAccountId
+     * @param int|null $serviceIntegrationId
      * @return \Stripe\Customer|null
      */
     public function createOrGetRelatedStripeCustomer($serviceIntegrationId = null, $opts = [])
@@ -106,38 +144,38 @@ trait ManagesCustomerInformation
         if ($this->stripeCustomerRecentlyFetched instanceof Customer) {
             return $this->stripeCustomerRecentlyFetched;
         }    
-    
-        $stripeSecretKey = $this->getRelatedStripeSecretKey($serviceIntegrationId);
-        
-        if (is_null($stripeSecretKey)) {
-            return ;
-        }        
-    
         $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
-    
-        if (is_null($stripeCustomerId)) {
-            return $this->createStripeCustomer($serviceIntegrationId, $opts);
+        $stripeCustomer   = is_null($stripeCustomerId)
+                                ? $this->createStripeCustomer($serviceIntegrationId, $opts)
+                                : $this->getRelatedStripeCustomer($serviceIntegrationId, $opts);
+
+        if (is_null($stripeCustomer)) {
+            return null;
         }
 
-        return $this->getRelatedStripeCustomer($serviceIntegrationId, $opts);
+        $this->setStripeCustomerInstanceToCache($stripeCustomer);
+
+        return $stripeCustomer;
     }
     
     /**
      * Create a stripe customer with the current user data
      * 
      * Send to stripe
+     * Store result in to cache
+     * This function uses the updateOrCreate sentence in the local database
      * 
      * @param int|null $serviceIntegrationId
      * @param array $opts
      * @return \Stripe\Customer|null
      */
     public static function createStripeCustomer($serviceIntegrationId = null, $opts = [])
-    {
-        $stripeSecretKey = $this->getRelatedStripeSecretKey($serviceIntegrationId);
+    { 
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
-        if (is_null($stripeSecretKey)) {
+        if (is_null($stripeClientConnection)) {
             return ;
-        }
+        } 
 
         if ($opts instanceof self) {
             $address = $opts->main_address;
@@ -168,8 +206,52 @@ trait ManagesCustomerInformation
 
             $opts = $data;
         }
+        
+        $stripeCustomer     = $stripeClientConnection->customers->create($opts);
+        $serviceIntegration = $this->resolveStripeServiceIntegration();
 
-        return (new StripeClient($stripeSecretKey))->customers->create($opts);
+        // Updating cache
+        $this->setStripeCustomerInstanceToCache($stripeCustomer);
+
+        // Creating or replacing the existing record the relationships in the local database
+        $this->service_integration_users()->updateOrCreate([
+            'service_integration_id' => $serviceIntegration->id,
+            'customer_id'            => $stripeCustomer->id
+        ]);
+
+        return $stripeCustomer;
     }
+
+
+    /**
+     * Store the stripe customer instance in the stripeCustomerRecentlyFetched
+     * 
+     * @param \Stripe\Customer
+     * @return void
+     */
+    public function setStripeCustomerInstanceToCache(Customer $stripeCustomer)
+    {
+        if ($stripeCustomer->id === null) {
+            return ;
+        }
+        $this->stripeCustomerRecentlyFetched   = $stripeCustomer;
+        $this->stripeCustomerIdRecentlyFetched = $stripeCustomer->id;
+    }
+
+    /**
+     * Store the stripe customer id in the stripeCustomerIdRecentlyFetched attribute 
+     * 
+     * @param string
+     * @return void
+     */
+    public function setStripeCustomerIdToCache($stripeCustomerId)
+    {
+        if ($stripeCustomerId == null || $stripeCustomerId == '') {
+            return ;
+        }
+
+        $this->stripeCustomerIdRecentlyFetched = $stripeCustomerId;
+    }
+
 
 }
