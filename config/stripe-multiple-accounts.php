@@ -1,46 +1,26 @@
 <?php
 
+use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegration;
+use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationProduct;
+use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription;
+use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscriptionItem;
+use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationUser;
+
 return [    
 
     /**
-     * Relationship table between \App\Models\User and the ServiceIntegration (stripe)
-     * 
+     * Models
      */
-    'multiple_customers_id' => [
-        
-        /**
-         * The table that contains the relation between the user and the stripe account
-         */
-        'customer_accounts_table' => 'user_s_integrations_accounts',
-        
-        /**
-         * The column name that contains the customer_id ("cus_") related with the users
-         */
-        'customer_id_column' => 'account_id',
-    
-        /**
-         * The foreign key for the stripe integration
-         */
-        'foreign_stripe_integration_id' => 'service_integration_id',
-    
+    'relationship_models' => [
+        'stripe_accounts'    => ServiceIntegration::class,
+        'products'           => ServiceIntegrationProduct::class,
+        'customers'          => ServiceIntegrationUser::class,
+        'subscriptions'      => ServiceIntegrationSubscription::class,
+        'subscription_items' => ServiceIntegrationSubscriptionItem::class,
     ],
+ 
 
     'stripe_integrations' => [
-        
-        /**
-         * The model that contains the stripe keys
-         * 
-         * secret_key, 
-         * public_key
-         * webhook_key
-         */
-        'table' => 'service_integrations',
-
-        /**
-         * The service integrations primary key
-         */
-        'primary_key' => 'id',
-
         /**
          * Payload column
          * 
