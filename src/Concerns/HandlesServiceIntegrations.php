@@ -62,13 +62,19 @@ trait HandlesServiceIntegrations
      */
     public function getStripeServiceIntegration($serviceIntegrationId = null)
     {
+        if ($this->stripeServiceIntegrationRecentlyFetched !== null) {
+            return $this->stripeServiceIntegrationRecentlyFetched;
+        }
+        
+        $serviceIntegrationTableName = (new config('stripe-multiple-accounts.relationship_models.stripe_accounts'))::TABLE_NAME;
+
         $service = null;
-        $query   = DB::table(config('stripe-multiple-accounts.stripe_integrations.table'))
+        $query   = DB::table($serviceIntegrationTableName)
                     ->where('name', 'Stripe')
                     ->where('short_name', 'str');
 
         if (!is_null($serviceIntegrationId)) {
-            $service = $query->where(config('stripe-multiple-accounts.stripe_integrations.primary_key'), $serviceIntegrationId)->first();  
+            $service = $query->where('id', $serviceIntegrationId)->first();  
         }else if ($this->getStripeServiceIntegrationMorphId() != null){            
             $service = $query->where('owner_type', $this->getStripeServiceIntegrationMorphType())->where('owner_id', $this->getStripeServiceIntegrationMorphId())->first();
         }
@@ -83,6 +89,6 @@ trait HandlesServiceIntegrations
             $service->{$payloadColumn.'_decoded'} = json_decode($service->{$payloadColumn}, true);
         }
 
-        return $service;
+        return $this->stripeServiceIntegrationRecentlyFetched = $service;
     }
 }
