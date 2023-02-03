@@ -141,7 +141,7 @@ trait ManagesCustomerInformation
      * 
      * @return \Stripe\Customer|null
      */
-    public function createIfNotExistsStripeCustomer($serviceIntegrationId = null, $opts = [])
+    public function createStripeCustomerIfNotExists($serviceIntegrationId = null, $opts = [])
     {
         if ($this->stripeCustomerExists($serviceIntegrationId)) {
             return null; // Exists
