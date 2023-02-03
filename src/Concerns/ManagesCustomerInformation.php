@@ -130,6 +130,26 @@ trait ManagesCustomerInformation
         return $stripeCustomerId;
     }
 
+
+    /**
+     * Create if not exists the stripe customer
+     * 
+     * returns the \Stripe\Customer if was created or
+     * returns null if exists
+     * 
+     * @param int|null  $serviceIntegrationId
+     * 
+     * @return \Stripe\Customer|null
+     */
+    public function createIfNotExistsStripeCustomer($serviceIntegrationId = null, $opts = [])
+    {
+        if ($this->stripeCustomerExists($serviceIntegrationId)) {
+            return null; // Exists
+        }
+
+        return $this->createStripeCustomer($serviceIntegrationId, $opts);
+    }
+
     /**
      * Create or get the related stripe customer instance
      * 
