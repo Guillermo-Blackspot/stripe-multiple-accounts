@@ -18,7 +18,7 @@ trait PerformsCharges
      * @return \Stripe\SetupIntent|null
      * @throws \Stripe\Exception\ApiErrorException — if the request fails
      */
-    public function createSetupIntent($serviceIntegrationId = null, $paymentMethods, $opts = [])
+    public function createStripeSetupIntent($serviceIntegrationId = null, $paymentMethods, $opts = [])
     {
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
@@ -50,7 +50,7 @@ trait PerformsCharges
      * @return \Stripe\SetupIntent|null
      * @throws \Stripe\Exception\ApiErrorException — if the request fails
      */
-    public function payWith($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
+    public function stripePayWith($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
     {
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
@@ -85,7 +85,7 @@ trait PerformsCharges
      * @return \Stripe\PaymentIntent|null
      * @throws \Laravel\Cashier\Exceptions\IncompletePayment
      */
-    public function charge($serviceIntegrationId = null, $amount, $paymentMethodId, array $opts = [])
+    public function makeStripeCharge($serviceIntegrationId = null, $amount, $paymentMethodId, array $opts = [])
     {       
         $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
 
@@ -101,7 +101,7 @@ trait PerformsCharges
         $opts['customer']       = $stripeCustomerId;
         $opts['payment_method'] = $paymentMethodId;
 
-        return $this->createPayment($serviceIntegrationId, $amount, $opts);
+        return $this->createStripePayment($serviceIntegrationId, $amount, $opts);
     }
 
 
@@ -112,7 +112,7 @@ trait PerformsCharges
      * @param array  $options
      * @return \Laravel\Cashier\Payment
      */
-    public function createPayment($serviceIntegrationId = null, $amount, array $options = [])
+    public function createStripePayment($serviceIntegrationId = null, $amount, array $options = [])
     {
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
