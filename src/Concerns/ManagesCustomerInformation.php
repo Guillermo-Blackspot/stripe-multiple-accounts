@@ -189,7 +189,7 @@ trait ManagesCustomerInformation
      * @param array $opts
      * @return \Stripe\Customer|null
      */
-    public static function createStripeCustomer($serviceIntegrationId = null, $opts = [])
+    public function createStripeCustomer($serviceIntegrationId = null, $opts = [])
     { 
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
