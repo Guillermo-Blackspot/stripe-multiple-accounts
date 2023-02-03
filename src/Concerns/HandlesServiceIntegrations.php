@@ -76,7 +76,11 @@ trait HandlesServiceIntegrations
         if (!is_null($serviceIntegrationId)) {
             $service = $query->where('id', $serviceIntegrationId)->first();  
         }else if ($this->getStripeServiceIntegrationMorphId() != null){            
-            $service = $query->where('owner_type', $this->getStripeServiceIntegrationMorphType())->where('owner_id', $this->getStripeServiceIntegrationMorphId())->first();
+            if ($this->getStripeServiceIntegrationMorphId() == null) {
+                $service = null;
+            }else{
+                $service = $query->where('owner_type', $this->getStripeServiceIntegrationMorphType())->where('owner_id', $this->getStripeServiceIntegrationMorphId())->first();
+            }
         }
 
         if (is_null($service)) {

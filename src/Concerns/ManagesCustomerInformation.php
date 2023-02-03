@@ -58,8 +58,14 @@ trait ManagesCustomerInformation
      */
     public function stripeCustomerExists($serviceIntegrationId = null)
     {
-        $this->service_integration_users()
-                ->where('service_integration_id', $serviceIntegrationId)
+        $serviceIntegration = $this->resolveStripeServiceIntegration($serviceIntegrationId);
+
+        if ($serviceIntegration == null) {
+            return false;
+        }
+
+        return $this->service_integration_users()
+                ->where('service_integration_id', $serviceIntegration->id)
                 ->exists();
     }
 
