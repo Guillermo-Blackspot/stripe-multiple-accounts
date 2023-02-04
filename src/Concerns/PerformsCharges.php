@@ -63,6 +63,21 @@ trait PerformsCharges
      * 
      * @return \Stripe\PaymentIntent|null
      */
+    public function createStripePaymentIntent($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
+    {
+        return $this->stripePayWith($serviceIntegrationId, $amount, $paymentMethods, $opts);
+    }
+
+    /**
+     * Create a new PaymentIntent instance for the given payment method types.
+     * 
+     * @param int|null  $serviceIntegrationId
+     * @param int  $amount
+     * @param array  $paymentMethods ['card','oxxo']
+     * @param array  $opts
+     * 
+     * @return \Stripe\PaymentIntent|null
+     */
     public function stripePayWith($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
     {
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
