@@ -14,6 +14,11 @@ class InvalidStripeServiceIntegration extends Exception
      */
     public static function notYetCreated($owner)
     {
-        return new static(class_basename($owner).' is not a Stripe Service Integration created yet.');
+        return new static(class_basename($owner).' has not a Stripe Service Integration related yet.');
+    }
+
+    public static function isDisabled($owner)
+    {
+        return new static(class_basename($owner).' has a Stripe Service Integration disabled.');
     }
 }
