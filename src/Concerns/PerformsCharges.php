@@ -126,4 +126,27 @@ trait PerformsCharges
 
         return $stripeClientConnection->paymentIntents->create($options);
     }
+
+
+    
+    /**
+     * Refund a customer for a charge.
+     *
+     * @param int|null  $serviceIntegrationId
+     * @param  string  $paymentIntent
+     * @param  array  $options
+     * @return \Stripe\Refund|null
+     */
+    public function stripeRefund($serviceIntegrationId = null, $paymentIntentId, array $options = [])
+    {
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+
+        if (is_null($stripeClientConnection)) {
+            return ;
+        }
+
+        return $stripeClientConnection->refunds->create(
+            ['payment_intent' => $paymentIntentId] + $options
+        );
+    }
 }
