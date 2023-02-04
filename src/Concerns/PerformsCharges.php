@@ -37,6 +37,23 @@ trait PerformsCharges
     }
 
     /**
+     * Create a new PaymentIntent instance.
+     *
+     * @param  int|null  $serviceIntegrationId
+     * @param  int  $amount
+     * @param  array  $opts
+     * @return \Stripe\PaymentIntent|null
+     */
+    public function stripePay($serviceIntegrationId = null, $amount, array $opts = [])
+    {
+        $opts['automatic_payment_methods'] = ['enabled' => true];
+
+        unset($opts['payment_method_types']);
+
+        return $this->createStripePayment($serviceIntegrationId, $amount, $opts);
+    }
+
+    /**
      * Create a new PaymentIntent instance for the given payment method types.
      * 
      * @param int|null  $serviceIntegrationId
@@ -115,5 +132,23 @@ trait PerformsCharges
             ['payment_intent' => $paymentIntentId], $opts
         ));
     }    
+
+    /**
+     * Find a payment intent by ID.
+     *
+     * @param  int|null  $serviceIntegrationId
+     * @param  string  $paymentIntentId
+     * @return \Stripe\PaymentIntent|null
+     */
+    public function findStripePayment($serviceIntegrationId = null, $paymentIntentId)
+    {
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+
+        if (is_null($stripeClientConnection)) {
+            return ;
+        }
+        
+        return $stripeClientConnection->paymentIntents->retrieve($paymentIntentId);
+    }
     
 }
