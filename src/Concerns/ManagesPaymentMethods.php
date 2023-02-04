@@ -9,6 +9,7 @@ use Stripe\StripeClient;
 /**
  * Manages the customer payment methods
  * 
+ * @method createStripeSetupIntent(?int $serviceIntegrationId = null, array $opts = []) : \Stripe\SetupIntent
  * @method getStripePaymentMethods(?int $serviceIntegrationId = null, string $type = 'card') : \Stripe\Collection
  * @method addStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : \Stripe\PaymentMethod
  * @method deleteStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : void
