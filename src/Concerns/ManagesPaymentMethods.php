@@ -3,6 +3,7 @@
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
 use Stripe\Collection;
+use Stripe\PaymentMethod;
 use Stripe\StripeClient;
 
 /**
@@ -11,6 +12,7 @@ use Stripe\StripeClient;
  * @method getStripePaymentMethods(?int $serviceIntegrationId = null, string $type = 'card') : \Stripe\Collection
  * @method addStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : \Stripe\PaymentMethod
  * @method deleteStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : void
+ * @method getOrAddStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId, string $type = 'card') : \Stripe\PaymentMethod
  */
 trait ManagesPaymentMethods
 {
@@ -20,8 +22,8 @@ trait ManagesPaymentMethods
      * 
      * Fetch from stripe
      * 
-     * @param int|null $serviceIntegrationId
-     * @param array $opts
+     * @param int|null  $serviceIntegrationId
+     * @param string  $type = 'card'
      * 
      * @return \Stripe\Collection<\Stripe\PaymentMethod/>
      */
@@ -96,4 +98,40 @@ trait ManagesPaymentMethods
 
         $stripeClientConnection->paymentMethods->detach($paymentMethodId);
     }
+
+
+    /**
+     * Get or add payment method to customer
+     * 
+     * Send data to stripe
+     * 
+     * @param int|null $serviceIntegrationId
+     * @param string $paymentMethodId
+     * @param string $type = 'card'
+     * 
+     * @return void
+     */
+    public function getOrAddStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId, $type = 'card')
+    {    
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+
+        if (is_null($stripeClientConnection)) {
+            return ;
+        }
+        
+        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+
+        if (is_null($stripeCustomerId)) {
+            return ;
+        }
+
+        $stripePaymentMethods = collect($this->getStripePaymentMethods($serviceIntegrationId, $type)->data);
+        $stripePaymentMethod  = $stripePaymentMethods->firstWhere('id', $paymentMethodId);
+
+        if ($stripePaymentMethod instanceof PaymentMethod) {
+            return $stripePaymentMethod;
+        }
+
+        return $this->addStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
+    }    
 }
