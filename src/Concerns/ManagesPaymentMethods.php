@@ -18,6 +18,35 @@ trait ManagesPaymentMethods
 {
     
     /**
+     * Create a setup intent
+     * 
+     * @param int|null  $serviceIntegrationId
+     * @param array  $opts
+     * 
+     * @return \Stripe\SetupIntent|null
+     * @throws \Stripe\Exception\ApiErrorException — if the request fails
+     */
+    public function createStripeSetupIntent($serviceIntegrationId = null, $opts = [])
+    {
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+
+        if (is_null($stripeClientConnection)) {
+            return ;
+        }        
+        
+        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+
+        if (is_null($stripeCustomerId)) {
+            return ;
+        }
+        
+        // Default payment_method_types = ['card']
+        $opts['customer'] = $stripeCustomerId;
+
+        return $stripeClientConnection->setupIntents->create($opts);
+    }
+
+    /**
      * Get the related stripe customer payment methods
      * 
      * Fetch from stripe

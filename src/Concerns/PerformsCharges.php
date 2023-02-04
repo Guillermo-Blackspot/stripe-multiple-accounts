@@ -6,38 +6,7 @@ namespace BlackSpot\StripeMultipleAccounts\Concerns;
  * Performs charges
  */
 trait PerformsCharges
-{
-
-    /**
-     * Create a setup intent
-     * 
-     * @param int|null  $serviceIntegrationId
-     * @param array  $paymentMethods ['card']
-     * @param array  $opts
-     * 
-     * @return \Stripe\SetupIntent|null
-     * @throws \Stripe\Exception\ApiErrorException — if the request fails
-     */
-    public function createStripeSetupIntent($serviceIntegrationId = null, $paymentMethods, $opts = [])
-    {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }        
-        
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }        
-
-        $opts = array_merge(['payment_method_types' => $paymentMethods], $opts);
-        
-        $opts['customer'] = $stripeCustomerId;
-
-        return $stripeClientConnection->setupIntents->create($opts);
-    }
+{    
 
     /**
      * Create a payment intent
