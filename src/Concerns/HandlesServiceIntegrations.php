@@ -2,6 +2,7 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
 use Illuminate\Support\Facades\DB;
 use Stripe\Collection;
 use Stripe\StripeClient;
@@ -52,6 +53,31 @@ trait HandlesServiceIntegrations
     }
 
     /**
+     * Get the stripe service integration query
+     * 
+     * @param int|null $serviceIntegrationId
+     * 
+     * @return \Illuminate\Database\Query\Builder|null
+     */
+    private function getStripeServiceIntegrationQuery($serviceIntegrationId = null)
+    {
+        $serviceIntegrationModel     = config('stripe-multiple-accounts.relationship_models.stripe_accounts');
+        $serviceIntegrationTableName = $serviceIntegrationModel::TABLE_NAME;
+        $query                       = DB::table($serviceIntegrationTableName)
+                                        ->where('name', 'Stripe')
+                                        ->where('short_name', 'str');
+
+        if (!is_null($serviceIntegrationId)) {
+            $query = $query->where('id', $serviceIntegrationId);
+        }else if ($this->getStripeServiceIntegrationMorphId() != null){                        
+            $query = $query->where('owner_type', $this->getStripeServiceIntegrationMorphType())->where('owner_id', $this->getStripeServiceIntegrationMorphId());
+        }else{
+            $query = null;
+        }        
+        return null;
+    }
+
+    /**
      * Get the related stripe account where the user belongs to
      * 
      * Scoping by \App\Models\Subsidiary\Subsidiary
@@ -66,23 +92,14 @@ trait HandlesServiceIntegrations
             return $this->stripeServiceIntegrationRecentlyFetched;
         }
         
-        $serviceIntegrationModel     = config('stripe-multiple-accounts.relationship_models.stripe_accounts');
-        $serviceIntegrationTableName = $serviceIntegrationModel::TABLE_NAME;
-        $service                     = null;
-        $query                       = DB::table($serviceIntegrationTableName)
-                                        ->where('name', 'Stripe')
-                                        ->where('short_name', 'str');
+        $query = $this->getStripeServiceIntegrationQuery($serviceIntegrationId);
 
-        if (!is_null($serviceIntegrationId)) {
-            $service = $query->where('id', $serviceIntegrationId)->first();  
-        }else if ($this->getStripeServiceIntegrationMorphId() != null){            
-            if ($this->getStripeServiceIntegrationMorphId() == null) {
-                $service = null;
-            }else{
-                $service = $query->where('owner_type', $this->getStripeServiceIntegrationMorphType())->where('owner_id', $this->getStripeServiceIntegrationMorphId())->first();
-            }
+        if (is_null($query)) {
+            return ;
         }
 
+        $service = $query->first();
+        
         if (is_null($service)) {
             return ;
         }
@@ -95,4 +112,27 @@ trait HandlesServiceIntegrations
 
         return $this->stripeServiceIntegrationRecentlyFetched = $service;
     }
+
+    /**
+     * Determine if the customer has a Stripe customer ID and throw an exception if not.
+     *
+     * @return void
+     *
+     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
+     */
+    public function assertStripeServiceIntegrationExists($serviceIntegrationId = null)
+    {
+        $query = $this->getStripeServiceIntegrationQuery($serviceIntegrationId);
+
+        if (is_null($query)) {
+            throw InvalidStripeServiceIntegration::notYetCreated($this);            
+        }        
+
+        $service = $query->first();
+        
+        if (is_null($service)) {
+            throw InvalidStripeServiceIntegration::notYetCreated($this);
+        }
+    }
+    
 }
