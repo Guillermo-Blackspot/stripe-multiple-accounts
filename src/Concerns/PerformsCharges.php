@@ -7,9 +7,37 @@ namespace BlackSpot\StripeMultipleAccounts\Concerns;
  */
 trait PerformsCharges
 {    
+    /**
+     * Make a "one off" charge on the customer for the given amount.
+     *
+     * @param int|null  $serviceIntegrationId
+     * @param int  $amount
+     * @param string  $paymentMethodId
+     * @param array  $opts
+     * 
+     * @return \Stripe\PaymentIntent|null
+     */
+    public function makeStripeCharge($serviceIntegrationId = null, $amount, $paymentMethodId, array $opts = [])
+    {       
+        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+
+        if (is_null($stripeCustomerId)) {
+            return ;
+        }
+
+        $opts = array_merge([
+            'confirmation_method' => 'automatic',
+            'confirm'             => true,
+        ], $opts);
+
+        $opts['customer']       = $stripeCustomerId;
+        $opts['payment_method'] = $paymentMethodId;
+
+        return $this->createStripePayment($serviceIntegrationId, $amount, $opts);
+    }
 
     /**
-     * Create a payment intent
+     * Create a new PaymentIntent instance for the given payment method types.
      * 
      * @param int|null  $serviceIntegrationId
      * @param int  $amount
@@ -17,7 +45,6 @@ trait PerformsCharges
      * @param array  $opts
      * 
      * @return \Stripe\PaymentIntent|null
-     * @throws \Stripe\Exception\ApiErrorException — if the request fails
      */
     public function stripePayWith($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
     {
@@ -44,44 +71,15 @@ trait PerformsCharges
     }
 
     /**
-     * Make a "one off" charge on the customer for the given amount.
-     *
+     * Create a new Payment instance with a Stripe PaymentIntent.
+     * 
      * @param int|null  $serviceIntegrationId
      * @param int  $amount
-     * @param string  $paymentMethodId
      * @param array  $opts
      * 
      * @return \Stripe\PaymentIntent|null
-     * @throws \Laravel\Cashier\Exceptions\IncompletePayment
      */
-    public function makeStripeCharge($serviceIntegrationId = null, $amount, $paymentMethodId, array $opts = [])
-    {       
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-
-        $opts = array_merge([
-            'confirmation_method' => 'automatic',
-            'confirm'             => true,
-        ], $opts);
-
-        $opts['customer']       = $stripeCustomerId;
-        $opts['payment_method'] = $paymentMethodId;
-
-        return $this->createStripePayment($serviceIntegrationId, $amount, $opts);
-    }
-
-
-    /**
-     * Create a new Payment instance with a Stripe PaymentIntent.
-     * @param int|null  $serviceIntegrationId
-     * @param int  $amount
-     * @param array  $options
-     * @return \Laravel\Cashier\Payment
-     */
-    public function createStripePayment($serviceIntegrationId = null, $amount, array $options = [])
+    public function createStripePayment($serviceIntegrationId = null, $amount, array $opts = [])
     {
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
@@ -89,24 +87,23 @@ trait PerformsCharges
             return ;
         }
 
-        $options = array_merge(['currency' => 'mxn'], $options);
+        $opts = array_merge(['currency' => 'mxn'], $opts);
 
-        $options['amount'] = $amount;
+        $opts['amount'] = $amount;
 
-        return $stripeClientConnection->paymentIntents->create($options);
+        return $stripeClientConnection->paymentIntents->create($opts);
     }
 
-
-    
     /**
      * Refund a customer for a charge.
      *
      * @param int|null  $serviceIntegrationId
      * @param  string  $paymentIntent
-     * @param  array  $options
+     * @param  array  $opts
+     * 
      * @return \Stripe\Refund|null
      */
-    public function stripeRefund($serviceIntegrationId = null, $paymentIntentId, array $options = [])
+    public function stripeRefund($serviceIntegrationId = null, $paymentIntentId, array $opts = [])
     {
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
@@ -114,8 +111,9 @@ trait PerformsCharges
             return ;
         }
 
-        return $stripeClientConnection->refunds->create(
-            ['payment_intent' => $paymentIntentId] + $options
-        );
-    }
+        return $stripeClientConnection->refunds->create(array_merge(
+            ['payment_intent' => $paymentIntentId], $opts
+        ));
+    }    
+    
 }
