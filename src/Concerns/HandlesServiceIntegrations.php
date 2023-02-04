@@ -74,7 +74,8 @@ trait HandlesServiceIntegrations
         }else{
             $query = null;
         }        
-        return null;
+
+        return $query;
     }
 
     /**
