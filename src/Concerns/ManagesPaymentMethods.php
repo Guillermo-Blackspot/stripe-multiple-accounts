@@ -12,41 +12,7 @@ use Stripe\StripeClient;
  */
 trait ManagesPaymentMethods
 {
-    /**
-     * Add stripe payment method resource
-     *  
-     * Send to stripe
-     * 
-     * @param int|string|null $serviceIntegrationId or you can pass directly the $tokenId instead it
-     * @param string|null $tokenId
-     * @param array $opts
-     * @throws \Stripe\Exception\ApiErrorException
-     * @return \Stripe\BankAccount|\Stripe\Card|\Stripe\Source|null
-     */
-    public function attachStripeCustomerPaymentMethodResource($serviceIntegrationId = null, $tokenId = null, $opts = [])
-    {
-        if (!is_numeric($serviceIntegrationId)) {
-            $tokenId = $serviceIntegrationId;
-            $serviceIntegrationId = null;
-        }
-
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
-
-        if ($stripeCustomerId == null) {
-            return null;
-        }
-
-        $opts['source'] = $tokenId;
     
-        return $stripeClientConnection->customers->createSource($stripeCustomerId, $opts);
-    }
-
     /**
      * Get the related stripe customer payment methods
      * 
@@ -54,10 +20,10 @@ trait ManagesPaymentMethods
      * 
      * @param int|null $serviceIntegrationId
      * @param array $opts
-     * @return \Stripe\Collection
+     * @return \Stripe\Collection<\Stripe\PaymentMethod/>
      */
-    public function getRelatedStripeCustomerPaymentMethods($serviceIntegrationId = null, $opts = ['type' => 'card'])
-    {                
+    public function getStripeCustomerPaymentMethods($serviceIntegrationId = null, $type = 'card', $opts = [])
+    {    
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
         $emptyStripeCollection  = new Collection();
         $emptyStripeCollection->data = [];
@@ -72,32 +38,11 @@ trait ManagesPaymentMethods
             return $emptyStripeCollection;
         }
 
-        return $stripeClientConnection->customers->allPaymentMethods($stripeCustomerId, $opts);
+        return $stripeClientConnection->paymentMethods->all(
+            array_merge(['customer' => $stripeCustomerId, 'type' => $type], $opts)
+        );    
     }
 
-    /**
-     * Detach payment method from stripe customer payment methods
-     * 
-     * Send to stripe
-     * 
-     * @param int|string|null $serviceIntegrationId or you can pass directly the $paymentMethodId instead it
-     * @param string|null $paymentMethodId
-     * @param array $opts
-     * @return \Stripe\PaymentMethod|null
-     */
-    public function detachStripeCustomerPaymentMethodResource($serviceIntegrationId = null, $paymentMethodId = null, $opts = [])
-    {
-        if (!is_numeric($serviceIntegrationId)) {
-            $paymentMethodId = $serviceIntegrationId;
-            $serviceIntegrationId = null;
-        }
 
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-
-        return $stripeClientConnection->paymentMethods->detach($paymentMethodId, null, $opts);
-    }
+    
 }
