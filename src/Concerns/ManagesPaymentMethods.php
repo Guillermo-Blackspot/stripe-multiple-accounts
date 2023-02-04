@@ -12,7 +12,7 @@ use Stripe\StripeClient;
  * @method getStripePaymentMethods(?int $serviceIntegrationId = null, string $type = 'card') : \Stripe\Collection
  * @method addStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : \Stripe\PaymentMethod
  * @method deleteStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : void
- * @method getOrAddStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId, string $type = 'card') : \Stripe\PaymentMethod
+ * @method getOrAddStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId, string $type = 'card') : \Stripe\PaymentMethod|null
  */
 trait ManagesPaymentMethods
 {
@@ -109,23 +109,11 @@ trait ManagesPaymentMethods
      * @param string $paymentMethodId
      * @param string $type = 'card'
      * 
-     * @return void
+     * @return \Stripe\PaymentMethod|null
      */
     public function getOrAddStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId, $type = 'card')
-    {    
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-        
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-
-        $stripePaymentMethods = collect($this->getStripePaymentMethods($serviceIntegrationId, $type)->data);
+    {
+        $stripePaymentMethods = collect($this->getStripePaymentMethods($serviceIntegrationId, $type)->data);        
         $stripePaymentMethod  = $stripePaymentMethods->firstWhere('id', $paymentMethodId);
 
         if ($stripePaymentMethod instanceof PaymentMethod) {
