@@ -16,7 +16,7 @@ trait PerformsCharges
      * @param array  $paymentMethods ['card','oxxo']
      * @param array  $opts
      * 
-     * @return \Stripe\SetupIntent|null
+     * @return \Stripe\PaymentIntent|null
      * @throws \Stripe\Exception\ApiErrorException — if the request fails
      */
     public function stripePayWith($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
