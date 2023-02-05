@@ -152,4 +152,37 @@ trait ManagesPaymentMethods
 
         return $this->addStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
     }    
+
+    /**
+     * Update customer's default payment method.
+     *
+     * @param  int|null  $serviceIntegrationId
+     * @param  string  $paymentMethodId
+     * @return \Stripe\PaymentMethod|null
+     */
+    public function updateDefaultStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
+    {
+        /** @var \Stripe\StripeClient */
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+
+        if (is_null($stripeClientConnection)) {
+            return ;
+        }
+        
+        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+
+        if (is_null($stripeCustomerId)) {
+            return ;
+        }
+        
+        $paymentMethod = $this->getOrAddStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
+
+        $this->updateStripeCustomer([
+            'invoice_settings' => ['default_payment_method' => $paymentMethod->id],
+        ]);
+
+
+        return $paymentMethod;
+    }
+
 }

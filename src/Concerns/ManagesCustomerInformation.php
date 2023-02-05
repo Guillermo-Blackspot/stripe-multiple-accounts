@@ -250,6 +250,37 @@ trait ManagesCustomerInformation
 
 
     /**
+     * Update the underlying Stripe customer information for the model.
+     *
+     * @param int|null $serviceIntegrationId
+     * @param  array  $opts
+     * @return \Stripe\Customer
+     */
+    public function updateStripeCustomer($serviceIntegrationId = null, array $opts = [])
+    {
+        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+
+        if (is_null($stripeClientConnection)) {
+            return ;
+        } 
+
+        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+
+        if (is_null($stripeCustomerId)) {
+            return ;
+        }
+
+        $stripeCustomer = $stripeClientConnection->customers->update(
+            $this->stripe_id, $opts
+        );
+
+        $this->setStripeCustomerInstanceToCache($stripeCustomer);
+
+        return $stripeCustomer;
+    }
+
+
+    /**
      * Store the stripe customer instance in the stripeCustomerRecentlyFetched
      * 
      * @param \Stripe\Customer
