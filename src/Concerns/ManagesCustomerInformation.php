@@ -271,7 +271,7 @@ trait ManagesCustomerInformation
         }
 
         $stripeCustomer = $stripeClientConnection->customers->update(
-            $this->stripe_id, $opts
+            $stripeCustomerId, $opts
         );
 
         $this->setStripeCustomerInstanceToCache($stripeCustomer);
