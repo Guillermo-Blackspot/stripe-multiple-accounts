@@ -162,20 +162,17 @@ trait ManagesPaymentMethods
      */
     public function updateDefaultStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
     {
-        /** @var \Stripe\StripeClient */
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
         if (is_null($stripeClientConnection)) {
             return ;
-        }
-        
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
+        }            
         
         $paymentMethod = $this->getOrAddStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
+
+        if (is_null($paymentMethod)) {
+            return ;
+        }
 
         $this->updateStripeCustomer([
             'invoice_settings' => ['default_payment_method' => $paymentMethod->id],
@@ -183,6 +180,32 @@ trait ManagesPaymentMethods
 
 
         return $paymentMethod;
+    }
+
+
+    /**
+     * Get the default payment method for the customer.
+     * 
+     * From invoice_settings or legacy default_source
+     *
+     * @param int|null  $serviceIntegrationId
+     * 
+     * @return \Stripe\PaymentMethod|\Stripe\Card|\Stripe\BankAccount|null
+     */
+    public function getDefaultStripePaymentMethod($serviceIntegrationId = null)
+    {        
+        $customer = $this->getRelatedStripeCustomer($serviceIntegrationId);
+
+        if (is_null($customer)) {
+            return ;
+        }
+
+        if ($customer->invoice_settings->default_payment_method) {
+            return $customer->invoice_settings->default_payment_method;
+        }
+
+        // If we can't find a payment method, try to return a legacy source...
+        return $customer->default_source;
     }
 
 }
