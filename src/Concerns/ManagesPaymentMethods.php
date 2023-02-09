@@ -174,7 +174,7 @@ trait ManagesPaymentMethods
             return ;
         }
 
-        $this->updateStripeCustomer([
+        $this->updateStripeCustomer($serviceIntegrationId, [
             'invoice_settings' => ['default_payment_method' => $paymentMethod->id],
         ]);
 
