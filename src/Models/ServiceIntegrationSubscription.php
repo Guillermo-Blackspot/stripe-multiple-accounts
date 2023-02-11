@@ -53,6 +53,6 @@ class ServiceIntegrationSubscription extends Model
 
     public function service_integration_subscription_items()
     {
-        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 'subscription_id');
+        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 's_subscription_id');
     }    
 }

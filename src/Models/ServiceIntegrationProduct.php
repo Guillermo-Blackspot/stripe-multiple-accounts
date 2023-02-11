@@ -51,4 +51,9 @@ class ServiceIntegrationProduct extends Model
     {
         return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.stripe_accounts'), 'service_integration_id');
     }
+
+    public function service_integration_subscription_items()
+    {
+        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 's_product_id');
+    }
 }
