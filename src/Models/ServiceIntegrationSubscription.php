@@ -41,6 +41,33 @@ class ServiceIntegrationSubscription extends Model
         return json_encode($value, JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * Helpers
+     */
+    public static function resolveStripeStatusDescription($status)
+    {
+        switch ($status) {
+            case 'incomplete':         return 'Primer cobro falló';                           break;
+            case 'incomplete_expired': return 'Primer cobro falló y ya no puede reactivarse'; break;
+            case 'trialing':           return 'En periodo de prueba';                         break;
+            case 'active':             return 'Activo';                                       break;
+            case 'past_due':           return 'La renovación falló';                          break;
+            case 'canceled':           return 'Cancelado o se agotaron los intentos de pago'; break;
+            case 'unpaid':             return 'No pagado, acumulando facturas';               break;
+            default:                   return 'Desconocido';                                  break;
+        }
+    }
+
+    /**
+     * Accessors
+     */
+    public function getStatusDescriptionAttribute()
+    {
+        return static::resolveStripeStatusDescription($this->status);
+    }
+
+
+
     public function model()
     {
         return $this->morphTo('model');   
