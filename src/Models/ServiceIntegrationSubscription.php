@@ -35,7 +35,7 @@ class ServiceIntegrationSubscription extends Model
      *
      * @var array
      */
-    protected $with = ['service_integration_items'];
+    protected $with = ['service_integration_subscription_items'];
 
     /**
      * The attributes that should be cast to native types.
