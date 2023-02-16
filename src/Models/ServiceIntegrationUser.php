@@ -23,10 +23,9 @@ class ServiceIntegrationUser extends Model
      */
     protected $guarded = [];
 
-
-    public function user()
-    {        
-        return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.local_users'), 'user_id');
+    public function owner()
+    {
+        return $this->morphTo('owner');   
     }
 
     public function service_integration()

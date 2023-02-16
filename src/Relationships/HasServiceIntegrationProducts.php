@@ -26,6 +26,6 @@ trait HasServiceIntegrationProducts
   */
   public function service_integration_products()
   {
-    return $this->morphMany(ServiceIntegrationProduct::class, 'model');
+    return $this->morphMany(ServiceIntegrationProduct::class, 'owner');
   }
 }

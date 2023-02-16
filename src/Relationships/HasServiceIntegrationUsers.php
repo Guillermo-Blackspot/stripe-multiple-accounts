@@ -26,6 +26,6 @@ trait HasServiceIntegrationUsers
   */
   public function service_integration_users()
   {
-    return $this->morphMany(ServiceIntegrationUser::class, 'model');
+    return $this->morphMany(ServiceIntegrationUser::class, 'owner');
   }
 }
