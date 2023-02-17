@@ -9,7 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use DateTimeInterface;
-use Stripe\Subscrition as StripeSubscription;
+use Stripe\Subscription as StripeSubscription;
 
 class ServiceIntegrationSubscription extends Model
 {
