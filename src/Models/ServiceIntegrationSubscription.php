@@ -380,7 +380,7 @@ class ServiceIntegrationSubscription extends Model
             return $this->recentlyStripeSubscrtionFetched;
         }
 
-        $stripeSubscription = $this->getStripeClientConnection()->retrieve(
+        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->retrieve(
             $this->subscription_id, ['expand' => $expand]
         );
 
