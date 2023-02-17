@@ -72,7 +72,7 @@ trait ManagesAuthCredentials
 
         if (!is_null($serviceIntegrationId)) {
             $query = $query->where('id', $serviceIntegrationId);
-        }else if (property_exists($this, 'service_integration_id')){
+        }else if (isset($this->service_integration_id)){
             $query = $query->where('id', $this->service_integration_id);
         }else if (method_exists($this, 'getStripeServiceIntegrationId')){
             $query = $query->where('id', $this->getStripeServiceIntegrationId());
