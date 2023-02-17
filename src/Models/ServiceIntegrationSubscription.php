@@ -113,7 +113,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasMultiplePrices()
     {
-        return is_null($this->service_integration_subscription_items->count());
+        return $this->service_integration_subscription_items->count() > 1;
     }
 
     /**
@@ -290,9 +290,9 @@ class ServiceIntegrationSubscription extends Model
 
 
 
-    public function model()
+    public function owner()
     {
-        return $this->morphTo('model');   
+        return $this->morphTo('owner');   
     }
 
     public function service_integration()

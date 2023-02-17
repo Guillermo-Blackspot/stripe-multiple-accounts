@@ -26,6 +26,6 @@ trait HasServiceIntegrationSubscriptions
   */
   public function service_integration_subscriptions()
   {
-    return $this->morphMany(ServiceIntegrationSubscription::class, 'model');
+    return $this->morphMany(ServiceIntegrationSubscription::class, 'owner');
   }
 }
