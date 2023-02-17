@@ -2,12 +2,21 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Models;
 
+use BlackSpot\StripeMultipleAccounts\Concerns\InteractsWithPaymentBehavior;
+use BlackSpot\StripeMultipleAccounts\Concerns\Prorates;
+use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
+use DateTimeInterface;
+use Stripe\Subscrition as StripeSubscription;
 
 class ServiceIntegrationSubscription extends Model
 {
+    use ManagesAuthCredentials;
+    use InteractsWithPaymentBehavior;
+    use Prorates;
+
     /** 
      * The table associated with the model.
      *
@@ -20,8 +29,14 @@ class ServiceIntegrationSubscription extends Model
     public const STRIPE_STATUS_INCOMPLETE_EXPIRED = 'incomplete_expired';
     public const STRIPE_STATUS_PAST_DUE = 'past_due';
     public const STRIPE_STATUS_UNPAID = 'unpaid';
+    public const STRIPE_STATUS_CANCELED = 'canceled';
     
-
+    /**
+     * Local memory cache
+     *
+     * @var \Stripe\Subscription
+     */
+    protected $recentlyStripeSubscrtionFetched = null;
 
     /**
      * The attributes that aren't mass assignable.
@@ -147,16 +162,6 @@ class ServiceIntegrationSubscription extends Model
     }
 
     /**
-     * Determine if the subscription has an incomplete payment.
-     *
-     * @return bool
-     */
-    public function hasIncompletePayment()
-    {
-        return $this->pastDue() || $this->incomplete();
-    }
-
-    /**
      * Determine if the subscription is past due.
      *
      * @return bool
@@ -164,16 +169,6 @@ class ServiceIntegrationSubscription extends Model
     public function pastDue()
     {
         return $this->status === self::STRIPE_STATUS_PAST_DUE;
-    }
-
-    /**
-     * Determine if the subscription is active, on trial, or within its grace period.
-     *
-     * @return bool
-     */
-    public function valid()
-    {
-        return $this->active() || $this->onTrial() || $this->onGracePeriod();
     }
 
     /**
@@ -191,6 +186,26 @@ class ServiceIntegrationSubscription extends Model
     }
 
     /**
+     * Determine if the subscription is no longer active.
+     *
+     * @return bool
+     */
+    public function canceled()
+    {
+        return !is_null($this->ends_at);
+    }
+
+    /**
+     * Determine if the subscription is active, on trial, or within its grace period.
+     *
+     * @return bool
+     */
+    public function valid()
+    {
+        return $this->active() || $this->onTrial() || $this->onGracePeriod();
+    }
+
+    /**
      * Determine if the subscription has ended and the grace period has expired.
      *
      * @return bool
@@ -201,6 +216,17 @@ class ServiceIntegrationSubscription extends Model
     }
 
     /**
+     * Determine if the subscription has an incomplete payment.
+     *
+     * @return bool
+     */
+    public function hasIncompletePayment()
+    {
+        return $this->pastDue() || $this->incomplete();
+    }        
+    
+
+    /**
      * Determine if the subscription is within its grace period after cancellation.
      *
      * @return bool
@@ -209,18 +235,7 @@ class ServiceIntegrationSubscription extends Model
     {
         return $this->ends_at && $this->ends_at->isFuture();
     }
-
-    /**
-     * Determine if the subscription is no longer active.
-     *
-     * @return bool
-     */
-    public function canceled()
-    {
-        return !is_null($this->ends_at);
-    }
-
-
+    
 
     /*
      * Overriding the database
@@ -236,11 +251,9 @@ class ServiceIntegrationSubscription extends Model
     {
         $stripeSubscription = $this->updateStripeSubscription([
             'cancel_at_period_end' => true,
-        ]);
+        ]);        
 
-        if (is_null($stripeSubscription)) {
-            throw new \Exception('The subscription not exists.');
-        }
+        $this->freshStripeSubscription($stripeSubscription);
 
         $this->status = $stripeSubscription->status;
 
@@ -261,6 +274,85 @@ class ServiceIntegrationSubscription extends Model
     }
 
     /**
+     * Cancel the subscription at a specific moment in time.
+     *
+     * @param  \DateTimeInterface|int  $endsAt
+     * @return $this
+     */
+    public function cancelAt($endsAt)
+    {
+        if ($endsAt instanceof DateTimeInterface) {
+            $endsAt = $endsAt->getTimestamp();
+        }
+
+        $stripeSubscription = $this->updateStripeSubscription([
+            'cancel_at' => $endsAt,
+            'proration_behavior' => $this->prorateBehavior(),
+        ]);
+
+        $this->freshStripeSubscription($stripeSubscription);
+
+        $this->fill([
+            $this->status => $stripeSubscription->status,    
+            $this->ends_at => Carbon::createFromTimestamp($stripeSubscription->cancel_at),
+        ])->save();
+
+        return $this;
+    }
+
+    /**
+     * Cancel the subscription immediately without invoicing.
+     *
+     * @return $this
+     */
+    public function cancelNow()
+    {        
+        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->cancel($this->subscription_id, [
+            'prorate' => $this->prorateBehavior() === 'create_prorations',
+        ]);
+
+        $this->freshStripeSubscription($stripeSubscription);
+
+        $this->markAsCanceled();
+
+        return $this;
+    }
+
+    /**
+     * Cancel the subscription immediately and invoice.
+     *
+     * @return $this
+     */
+    public function cancelNowAndInvoice()
+    {
+        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->cancel($this->subscription_id, [
+            'invoice_now' => true,
+            'prorate' => $this->prorateBehavior() === 'create_prorations',
+        ]);
+
+        $this->freshStripeSubscription($stripeSubscription);
+        
+        $this->markAsCanceled();
+        
+        return $this;
+    }
+
+    /**
+     * Mark the subscription as canceled.
+     *
+     * @return void
+     *
+     * @internal
+     */
+    public function markAsCanceled()
+    {
+        $this->fill([
+            'status'  => self::STRIPE_STATUS_CANCELED,
+            'ends_at' => Carbon::now(),
+        ])->save();
+    }
+
+    /**
      * Update the underlying Stripe subscription information for the model.
      *
      * @param  array  $options
@@ -268,17 +360,43 @@ class ServiceIntegrationSubscription extends Model
      */
     public function updateStripeSubscription(array $options = [])
     {
-        $stripeClientConnection = $this->model->getStripeClientConnection($this->service_integration_id);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-        
-        return $stripeClientConnection->subscriptions->update(
+        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->update(
             $this->subscription_id, $options
         );
+
+        return $this->freshStripeSubscription($stripeSubscription);
     }
     
+
+    /**
+     * Get the subscription as a Stripe subscription object.
+     *
+     * @param  array  $expand
+     * @return \Stripe\Subscription
+     */
+    public function asStripeSubscription(array $expand = [])
+    {
+        if ($this->recentlyStripeSubscrtionFetched instanceOf StripeSubscription) {
+            return $this->recentlyStripeSubscrtionFetched;
+        }
+
+        $stripeSubscription = $this->getStripeClientConnection()->retrieve(
+            $this->subscription_id, ['expand' => $expand]
+        );
+
+        return $this->freshStripeSubscription($stripeSubscription);
+    }
+
+    /**
+     * Fresh the local memory cache
+     *
+     * @param StripeSubscription $stripeSubscription
+     * @return StripeSubscription
+     */
+    protected function freshStripeSubscription(StripeSubscription $stripeSubscription)
+    {
+        return $this->recentlyStripeSubscrtionFetched = $stripeSubscription;
+    }
 
     /**
      * Accessors
@@ -288,7 +406,9 @@ class ServiceIntegrationSubscription extends Model
         return static::resolveStripeStatusDescription($this->status);
     }
 
-
+    /**
+     * Relationships
+     */
 
     public function owner()
     {
