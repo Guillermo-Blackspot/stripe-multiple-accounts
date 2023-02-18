@@ -90,7 +90,7 @@ class ServiceIntegrationSubscription extends Model
             case 'trialing':           return 'En periodo de prueba';                         break;
             case 'active':             return 'Activo';                                       break;
             case 'past_due':           return 'La renovación falló';                          break;
-            case 'canceled':           return 'Cancelado o se agotaron los intentos de pago'; break;
+            case 'canceled':           return 'Cancelado'; break;
             case 'unpaid':             return 'No pagado, acumulando facturas';               break;
             default:                   return 'Desconocido';                                  break;
         }
