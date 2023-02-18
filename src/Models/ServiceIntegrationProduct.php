@@ -2,12 +2,14 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Models;
 
-use App\Models\Morphs\ServiceIntegration;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 
 class ServiceIntegrationProduct extends Model
 {
+    use ManagesAuthCredentials;
+    
     /** 
      * The table associated with the model.
      *

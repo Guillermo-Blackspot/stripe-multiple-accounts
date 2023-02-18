@@ -5,9 +5,12 @@ namespace BlackSpot\StripeMultipleAccounts\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 
 class ServiceIntegration extends Model
 {
+    use ManagesAuthCredentials;
+    
     /** 
      * The table associated with the model.
      *

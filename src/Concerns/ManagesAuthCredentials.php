@@ -72,6 +72,8 @@ trait ManagesAuthCredentials
 
         if (!is_null($serviceIntegrationId)) {
             $query = $query->where('id', $serviceIntegrationId);
+        }elseif (isset($this->id) && self::class == config('stripe-multiple-accounts.relationship_models.stripe_accounts')) {
+            $query = $query->where('id', $this->id);
         }else if (isset($this->service_integration_id)){
             $query = $query->where('id', $this->service_integration_id);
         }else if (method_exists($this, 'getStripeServiceIntegrationId')){
