@@ -51,7 +51,7 @@ trait HasServiceIntegrations
   /**
    * Determine if the owner model has the stripe service integration
    *
-   * Better performance use the scope ->withStripeServiceIntegration() before use 
+   * For a better performance use the scope ->withStripeServiceIntegration() before use 
    * this function
    * 
    * @param boolean $evaluatesActiveStatus
@@ -63,9 +63,35 @@ trait HasServiceIntegrations
   }
 
   /**
+   * Get the stripe service integration if active
+   * 
+   * For a better performance use the scope ->withStripeServiceIntegration() before use 
+   * this function
+   * 
+   * @return object|null
+   */
+  public function getActiveStripeServiceIntegration()
+  {
+    return $this->findStripeServiceIntegration(true)->first();
+  }
+
+  /**
+   * Get the stripe service integration
+   * 
+   * For a better performance use the scope ->withStripeServiceIntegration() before use 
+   * this function
+   * 
+   * @return object|null
+   */
+  public function getStripeServiceIntegration()
+  {
+    return $this->findStripeServiceIntegration(true)->first();
+  }
+
+  /**
    * Determine if the owner model has the stripe service integration active
    * 
-   * Better performance use the scope ->withStripeServiceIntegration() before use 
+   * For a better performance use the scope ->withStripeServiceIntegration() before use 
    * this function
    * 
    * @return boolean
