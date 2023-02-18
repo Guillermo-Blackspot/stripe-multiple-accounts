@@ -60,6 +60,19 @@ trait HasServiceIntegrations
   public function hasStripeServiceIntegration($evaluatesActiveStatus = false)
   {  
     return $this->findStripeServiceIntegration($evaluatesActiveStatus)->isNotEmpty();
+  }  
+
+  /**
+   * Determine if the owner model has the stripe service integration active
+   * 
+   * For a better performance use the scope ->withStripeServiceIntegration() before use 
+   * this function
+   * 
+   * @return boolean
+   */
+  public function hasStripeServiceIntegrationActive()
+  {  
+    return $this->findStripeServiceIntegration(true)->isNotEmpty();
   }
 
   /**
@@ -85,20 +98,7 @@ trait HasServiceIntegrations
    */
   public function getStripeServiceIntegration()
   {
-    return $this->findStripeServiceIntegration(true)->first();
-  }
-
-  /**
-   * Determine if the owner model has the stripe service integration active
-   * 
-   * For a better performance use the scope ->withStripeServiceIntegration() before use 
-   * this function
-   * 
-   * @return boolean
-   */
-  public function hasStripeServiceIntegrationActive()
-  {  
-    return $this->findStripeServiceIntegration(true)->isNotEmpty();
+    return $this->findStripeServiceIntegration(false)->first();
   }
 
   public function scopeWithStripeServiceIntegration($query)
@@ -108,7 +108,7 @@ trait HasServiceIntegrations
 
   public function scopeWithStripeServiceIntegrationIfActive($query)
   {
-    return $query->scopeJoinStripeServiceIntegrationIfActive();
+    return $query->joinStripeServiceIntegrationIfActive();
   }
 
   public function scopeJoinStripeServiceIntegration($query)
