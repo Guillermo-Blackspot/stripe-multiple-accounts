@@ -59,10 +59,11 @@ class ServiceIntegrationSubscription extends Model
      * @var array
      */
     protected $casts = [
-        'ends_at'       => 'datetime',
-        'quantity'      => 'integer',
-        'trial_ends_at' => 'datetime',
-        'metadata'      => 'array'
+        'ends_at'              => 'datetime',
+        'quantity'             => 'integer',
+        'current_period_start' => 'datetime',
+        'trial_ends_at'        => 'datetime',
+        'metadata'             => 'array'        
     ];
 
     /**
@@ -203,9 +204,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function canceled()
     {
-        if ($this->ends_at == null) return true;
-
-        return $this->ends_at->isPast() || $this->status == self::STRIPE_STATUS_CANCELED;
+        return $this->status == self::STRIPE_STATUS_CANCELED;
     }
 
     /**
