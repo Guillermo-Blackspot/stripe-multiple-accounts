@@ -2,8 +2,6 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
-use App\Models\Morphs\ServiceIntegrationProduct;
-
 trait HasServiceIntegrationProducts
 {
   /**
@@ -26,6 +24,6 @@ trait HasServiceIntegrationProducts
   */
   public function service_integration_products()
   {
-    return $this->morphMany(ServiceIntegrationProduct::class, 'model');
+    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.products'), 'model');
   }
 }

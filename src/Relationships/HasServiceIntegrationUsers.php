@@ -2,8 +2,6 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
-use App\Models\Morphs\ServiceIntegrationUser;
-
 trait HasServiceIntegrationUsers
 {
   /**
@@ -26,6 +24,6 @@ trait HasServiceIntegrationUsers
   */
   public function service_integration_users()
   {
-    return $this->morphMany(ServiceIntegrationUser::class, 'owner');
+    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.customers'), 'owner');
   }
 }
