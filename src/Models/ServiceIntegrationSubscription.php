@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use DateTimeInterface;
 use Stripe\Subscription as StripeSubscription;
+use LogicException;
 
 class ServiceIntegrationSubscription extends Model
 {
@@ -186,13 +187,37 @@ class ServiceIntegrationSubscription extends Model
     }
 
     /**
+     * Determine if the subscription has ended and the grace period has expired.
+     *
+     * @return bool
+     */
+    public function ended()
+    {
+        return $this->canceled() && !$this->onGracePeriod();
+    }
+
+    /**
      * Determine if the subscription is no longer active.
      *
      * @return bool
      */
     public function canceled()
     {
-        return !is_null($this->ends_at);
+        if ($this->ends_at == null) return true;
+
+        return $this->ends_at->isPast() || $this->status == self::STRIPE_STATUS_CANCELED;
+    }
+
+    /**
+     * Determine if the subscription will be cancelated 
+     * 
+     * on a custom_date or on trial_period_ends
+     *
+     * @return boolean
+     */
+    public function willBeCancelated()
+    {
+        return $this->will_be_canceled;
     }
 
     /**
@@ -203,17 +228,7 @@ class ServiceIntegrationSubscription extends Model
     public function valid()
     {
         return $this->active() || $this->onTrial() || $this->onGracePeriod();
-    }
-
-    /**
-     * Determine if the subscription has ended and the grace period has expired.
-     *
-     * @return bool
-     */
-    public function ended()
-    {
-        return $this->canceled() && !$this->onGracePeriod();
-    }
+    }    
 
     /**
      * Determine if the subscription has an incomplete payment.
@@ -227,7 +242,9 @@ class ServiceIntegrationSubscription extends Model
     
 
     /**
-     * Determine if the subscription is within its grace period after cancellation.
+     * Determine if the subscription is within its grace period
+     * 
+     * The dead line of the subscription is future
      *
      * @return bool
      */
@@ -255,20 +272,21 @@ class ServiceIntegrationSubscription extends Model
 
         $this->freshStripeSubscription($stripeSubscription);
 
-        $this->status = $stripeSubscription->status;
-
         // If the user was on trial, we will set the grace period to end when the trial
         // would have ended. Otherwise, we'll retrieve the end of the billing period
         // period and make that the end of the grace period for this current user.
         if ($this->onTrial()) {
-            $this->ends_at = $this->trial_ends_at;
+            $endsAt = $this->trial_ends_at;
         } else {
-            $this->ends_at = Carbon::createFromTimestamp(
-                $stripeSubscription->current_period_end
-            );
+            $endsAt = Carbon::createFromTimestamp($stripeSubscription->current_period_end);
         }
 
-        $this->save();
+        $this->fill([
+            'will_be_canceled'     => true,
+            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
+            'ends_at'              => $endsAt,
+            'status'               => $stripeSubscription->status,
+        ])->save();
 
         return $this;
     }
@@ -286,15 +304,17 @@ class ServiceIntegrationSubscription extends Model
         }
 
         $stripeSubscription = $this->updateStripeSubscription([
-            'cancel_at' => $endsAt,
+            'cancel_at'          => $endsAt,
             'proration_behavior' => $this->prorateBehavior(),
         ]);
 
         $this->freshStripeSubscription($stripeSubscription);
 
-        $this->fill([
-            $this->status => $stripeSubscription->status,    
-            $this->ends_at => Carbon::createFromTimestamp($stripeSubscription->cancel_at),
+        $this->fill([            
+            'will_be_canceled'     => true,
+            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
+            'status'               => $stripeSubscription->status,    
+            'ends_at'              => $endsAt,
         ])->save();
 
         return $this;
@@ -338,6 +358,37 @@ class ServiceIntegrationSubscription extends Model
     }
 
     /**
+     * Resume the canceled subscription.
+     *
+     * @return $this
+     *
+     * @throws \LogicException
+     */
+    public function resume()
+    {
+        if (! $this->onGracePeriod()) {
+            throw new LogicException('Unable to resume subscription that is not within grace period.');
+        }
+
+        $stripeSubscription = $this->updateStripeSubscription([
+            'cancel_at_period_end' => false,
+            'trial_end' => $this->onTrial() ? $this->trial_ends_at->getTimestamp() : 'now',
+        ]);
+
+        // Finally, we will remove the ending timestamp from the user's record in the
+        // local database to indicate that the subscription is active again and is
+        // no longer "canceled". Then we shall save this record in the database.
+        $this->fill([
+            'will_be_cancelated'   => false,
+            'status'               => $stripeSubscription->status,
+            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
+            'ends_at'              => Carbon::createFromTimestamp($stripeSubscription->current_period_end),
+        ])->save();
+
+        return $this;
+    }
+
+    /**
      * Mark the subscription as canceled.
      *
      * @return void
@@ -347,8 +398,9 @@ class ServiceIntegrationSubscription extends Model
     public function markAsCanceled()
     {
         $this->fill([
-            'status'  => self::STRIPE_STATUS_CANCELED,
-            'ends_at' => Carbon::now(),
+            'will_be_canceled' => false,
+            'status'           => self::STRIPE_STATUS_CANCELED,
+            'ends_at'          => Carbon::now(),
         ])->save();
     }
 
