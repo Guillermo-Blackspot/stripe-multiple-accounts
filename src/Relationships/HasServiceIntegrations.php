@@ -114,7 +114,7 @@ trait HasServiceIntegrations
   public function scopeJoinStripeServiceIntegration($query)
   {
     return $query->with(['service_integrations' => function($query){
-      $query->select('id','payload','owner_id','owner_type','active','name')
+      $query->select('id','payload','owner_id','owner_type','active','name','short_name')
           ->where('name', ServiceIntegration::STRIPE_SERVICE)
           ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
     }]);
@@ -123,7 +123,7 @@ trait HasServiceIntegrations
   public function scopeJoinStripeServiceIntegrationIfActive($query)
   {
     return $query->with(['service_integrations' => function($query){
-      $query->select('id','payload','owner_id','owner_type','active','name')
+      $query->select('id','payload','owner_id','owner_type','active','name','short_name')
           ->where('name', ServiceIntegration::STRIPE_SERVICE)
           ->where('short_name',ServiceIntegration::STRIPE_SERVICE_SHORT_NAME)
           ->where('active', true);
