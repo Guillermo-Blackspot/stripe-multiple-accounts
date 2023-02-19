@@ -78,7 +78,7 @@ trait ManagesAuthCredentials
             $query = $query->where('id', $this->service_integration_id);
         }else if (method_exists($this, 'getStripeServiceIntegrationId')){
             $query = $query->where('id', $this->getStripeServiceIntegrationId());
-        }else if (method_exists($this, 'getStripeServiceIntegrationOwnerId') && method_exists('getStripeServiceIntegrationOwnerType')){
+        }else if (method_exists($this, 'getStripeServiceIntegrationOwnerId') && method_exists($this,'getStripeServiceIntegrationOwnerType')){
             $query = $query->where('owner_type', $this->getStripeServiceIntegrationOwnerType())->where('owner_id', $this->getStripeServiceIntegrationOwnerId());
         }else{
             $query = $query->where('owner_type', 'not-exists-expecting-null');
