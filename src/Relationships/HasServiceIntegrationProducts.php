@@ -24,6 +24,6 @@ trait HasServiceIntegrationProducts
   */
   public function service_integration_products()
   {
-    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.products'), 'model');
+    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.products'), 'owner');
   }
 }

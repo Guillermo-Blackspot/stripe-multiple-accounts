@@ -44,9 +44,9 @@ class ServiceIntegrationProduct extends Model
         return json_encode($value, JSON_UNESCAPED_UNICODE);
     }
 
-    public function model()
+    public function owner()
     {
-        return $this->morphTo('model');   
+        return $this->morphTo('owner');   
     }
 
     public function service_integration()
