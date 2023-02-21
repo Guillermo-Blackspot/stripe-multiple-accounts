@@ -7,7 +7,7 @@ use LogicException;
 use DateTimeInterface;
 use Stripe\Subscription as StripeSubscription;
 
-class StripeMethods
+trait StripeMethods
 {
     /**
      * Local memory cache
