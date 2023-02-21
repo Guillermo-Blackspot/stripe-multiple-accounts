@@ -335,6 +335,7 @@ class SubscriptionBuilder
             'trial_ends_at'          => ! $this->skipTrial ? $this->trialExpires : null,
             'currency'               => $stripeSubscription->currency,
             'will_be_canceled'       => false,
+            'billing_cycle_anchor'   => $stripeSubscription->current_period_start,
             'current_period_start'   => $stripeSubscription->current_period_start,
             'ends_at'                => $stripeSubscription->current_period_end,            
             'service_integration_id' => $this->serviceIntegrationId,
