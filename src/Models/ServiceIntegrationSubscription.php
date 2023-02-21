@@ -255,7 +255,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancel()
     {
-        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
     }
 
     /**
@@ -266,7 +266,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelAt($endsAt)
     {
-        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)($endsAt);
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)($endsAt);
     }
 
     /**
@@ -276,7 +276,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelNow()
     {        
-        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -286,7 +286,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelNowAndInvoice()
     {
-        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -298,7 +298,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function resume()
     {
-        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
     }
 
     /**
