@@ -102,7 +102,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function onTrial()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
 
@@ -114,7 +114,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasPrice($priceId)
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)($priceId);
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}($priceId);
     }
 
     /**
@@ -124,7 +124,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasMultiplePrices()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -144,7 +144,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasExpiredTrial()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -154,7 +154,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function incomplete()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -174,7 +174,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function active()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -184,7 +184,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function ended()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -194,7 +194,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function canceled()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -206,7 +206,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function willBeCancelated()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -216,7 +216,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function valid()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }    
 
     /**
@@ -226,7 +226,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasIncompletePayment()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }        
     
 
@@ -239,7 +239,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function onGracePeriod()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
     
 
@@ -255,7 +255,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancel()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();        
     }
 
     /**
@@ -266,7 +266,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelAt($endsAt)
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)($endsAt);
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}($endsAt);
     }
 
     /**
@@ -276,7 +276,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelNow()
     {        
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -286,7 +286,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelNowAndInvoice()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();
     }
 
     /**
@@ -298,7 +298,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function resume()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
+        return $this->{$this->getProviderFunctionAccesor().ucfirst(__FUNCTION__)}();        
     }
 
     /**
@@ -322,7 +322,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function syncProviderStatus()
     {
-        return $this->{$this->getProviderFunctionAccesor()}.'SyncStatus'();
+        return $this->{$this->getProviderFunctionAccesor().'SyncStatus'}();
     }
 
     /**
