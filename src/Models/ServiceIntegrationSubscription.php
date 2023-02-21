@@ -3,20 +3,23 @@
 namespace BlackSpot\StripeMultipleAccounts\Models;
 
 use BlackSpot\StripeMultipleAccounts\Concerns\InteractsWithPaymentBehavior;
-use BlackSpot\StripeMultipleAccounts\Concerns\Prorates;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
+use BlackSpot\StripeMultipleAccounts\Concerns\Prorates;
+use BlackSpot\StripeMultipleAccounts\Models\ProviderMethods\StripeMethods;
+use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegration;
 use Carbon\Carbon;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use DateTimeInterface;
-use Stripe\Subscription as StripeSubscription;
 use LogicException;
+use Stripe\Subscription as StripeSubscription;
 
 class ServiceIntegrationSubscription extends Model
 {
     use ManagesAuthCredentials;
     use InteractsWithPaymentBehavior;
     use Prorates;
+    use StripeMethods;
 
     /** 
      * The table associated with the model.
@@ -30,14 +33,7 @@ class ServiceIntegrationSubscription extends Model
     public const STRIPE_STATUS_INCOMPLETE_EXPIRED = 'incomplete_expired';
     public const STRIPE_STATUS_PAST_DUE = 'past_due';
     public const STRIPE_STATUS_UNPAID = 'unpaid';
-    public const STRIPE_STATUS_CANCELED = 'canceled';
-    
-    /**
-     * Local memory cache
-     *
-     * @var \Stripe\Subscription
-     */
-    protected $recentlyStripeSubscrtionFetched = null;
+    public const STRIPE_STATUS_CANCELED = 'canceled';    
 
     /**
      * The attributes that aren't mass assignable.
@@ -51,7 +47,7 @@ class ServiceIntegrationSubscription extends Model
      *
      * @var array
      */
-    protected $with = ['service_integration_subscription_items'];
+    protected $with = ['service_integration:id,name,short_name,active,owner_id,owner_type','service_integration_subscription_items'];
 
     /**
      * The attributes that should be cast to native types.
@@ -82,31 +78,31 @@ class ServiceIntegrationSubscription extends Model
     }
 
     /**
-     * Helpers
+     * Accessors
      */
-    public static function resolveStripeStatusDescription($status)
+    public function getStatusDescriptionAttribute()
     {
-        switch ($status) {
-            case 'incomplete':         return 'Primer cobro falló';                           break;
-            case 'incomplete_expired': return 'Primer cobro falló y ya no puede reactivarse'; break;
-            case 'trialing':           return 'En periodo de prueba';                         break;
-            case 'active':             return 'Activo';                                       break;
-            case 'past_due':           return 'La renovación falló';                          break;
-            case 'canceled':           return 'Cancelado'; break;
-            case 'unpaid':             return 'No pagado, acumulando facturas';               break;
-            default:                   return 'Desconocido';                                  break;
-        }
+        return static::resolveStripeStatusDescription($this->status);
     }
 
+    protected function getProviderFunctionAccesor()
+    {
+        if ($this->service_integration->name == ServiceIntegration::STRIPE_SERVICE && $this->service_integration->short_name == ServiceIntegration::STRIPE_SERVICE_SHORT_NAME) {            
+            return 'stripe';
+        }
+        throw new \Exception("Unknown Provider", 1);
+    }
 
     /**
      * Determine if the subscription is within its trial period.
      *
+     * Automatically takes the service_integration provider (Stripe, another)
+     * 
      * @return bool
      */
     public function onTrial()
     {
-        return $this->trial_ends_at && $this->trial_ends_at->isFuture();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
 
@@ -118,9 +114,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasPrice($priceId)
     {
-        return $this->service_integration_subscription_items->contains(function ($item) use ($priceId) {
-            return $item->price_id === $priceId;
-        });
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)($priceId);
     }
 
     /**
@@ -130,7 +124,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasMultiplePrices()
     {
-        return $this->service_integration_subscription_items->count() > 1;
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -140,7 +134,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasSinglePrice()
     {
-        return !$this->hasMultiplePrices();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -150,7 +144,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasExpiredTrial()
     {
-        return $this->trial_ends_at && $this->trial_ends_at->isPast();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -160,7 +154,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function incomplete()
     {
-        return $this->status === self::STRIPE_STATUS_INCOMPLETE;
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -170,7 +164,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function pastDue()
     {
-        return $this->status === self::STRIPE_STATUS_PAST_DUE;
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -180,11 +174,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function active()
     {
-        return !$this->ended() &&
-            $this->status !== self::STRIPE_STATUS_INCOMPLETE &&
-            $this->status !== self::STRIPE_STATUS_INCOMPLETE_EXPIRED &&
-            $this->status !== self::STRIPE_STATUS_PAST_DUE &&
-            $this->status !== self::STRIPE_STATUS_UNPAID;
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -194,7 +184,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function ended()
     {
-        return $this->canceled() && !$this->onGracePeriod();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -204,7 +194,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function canceled()
     {
-        return $this->status == self::STRIPE_STATUS_CANCELED;
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -216,7 +206,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function willBeCancelated()
     {
-        return $this->will_be_canceled;
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -226,7 +216,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function valid()
     {
-        return $this->active() || $this->onTrial() || $this->onGracePeriod();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }    
 
     /**
@@ -236,7 +226,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function hasIncompletePayment()
     {
-        return $this->pastDue() || $this->incomplete();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }        
     
 
@@ -249,7 +239,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function onGracePeriod()
     {
-        return $this->ends_at && $this->ends_at->isFuture();
+        return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
     
 
@@ -265,29 +255,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancel()
     {
-        $stripeSubscription = $this->updateStripeSubscription([
-            'cancel_at_period_end' => true,
-        ]);        
-
-        $this->freshStripeSubscription($stripeSubscription);
-
-        // If the user was on trial, we will set the grace period to end when the trial
-        // would have ended. Otherwise, we'll retrieve the end of the billing period
-        // period and make that the end of the grace period for this current user.
-        if ($this->onTrial()) {
-            $endsAt = $this->trial_ends_at;
-        } else {
-            $endsAt = Carbon::createFromTimestamp($stripeSubscription->current_period_end);
-        }
-
-        $this->fill([
-            'will_be_canceled'     => true,
-            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'ends_at'              => $endsAt,
-            'status'               => $stripeSubscription->status,
-        ])->save();
-
-        return $this;
+        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
     }
 
     /**
@@ -298,25 +266,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelAt($endsAt)
     {
-        if ($endsAt instanceof DateTimeInterface) {
-            $endsAt = $endsAt->getTimestamp();
-        }
-
-        $stripeSubscription = $this->updateStripeSubscription([
-            'cancel_at'          => $endsAt,
-            'proration_behavior' => $this->prorateBehavior(),
-        ]);
-
-        $this->freshStripeSubscription($stripeSubscription);
-
-        $this->fill([            
-            'will_be_canceled'     => true,
-            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'status'               => $stripeSubscription->status,    
-            'ends_at'              => $endsAt,
-        ])->save();
-
-        return $this;
+        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)($endsAt);
     }
 
     /**
@@ -326,15 +276,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelNow()
     {        
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->cancel($this->subscription_id, [
-            'prorate' => $this->prorateBehavior() === 'create_prorations',
-        ]);
-
-        $this->freshStripeSubscription($stripeSubscription);
-
-        $this->markAsCanceled();
-
-        return $this;
+        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -344,16 +286,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function cancelNowAndInvoice()
     {
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->cancel($this->subscription_id, [
-            'invoice_now' => true,
-            'prorate' => $this->prorateBehavior() === 'create_prorations',
-        ]);
-
-        $this->freshStripeSubscription($stripeSubscription);
-        
-        $this->markAsCanceled();
-        
-        return $this;
+        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();
     }
 
     /**
@@ -365,26 +298,7 @@ class ServiceIntegrationSubscription extends Model
      */
     public function resume()
     {
-        if (! $this->onGracePeriod()) {
-            throw new LogicException('Unable to resume subscription that is not within grace period.');
-        }
-
-        $stripeSubscription = $this->updateStripeSubscription([
-            'cancel_at_period_end' => false,
-            'trial_end' => $this->onTrial() ? $this->trial_ends_at->getTimestamp() : 'now',
-        ]);
-
-        // Finally, we will remove the ending timestamp from the user's record in the
-        // local database to indicate that the subscription is active again and is
-        // no longer "canceled". Then we shall save this record in the database.
-        $this->fill([
-            'will_be_cancelated'   => false,
-            'status'               => $stripeSubscription->status,
-            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'ends_at'              => Carbon::createFromTimestamp($stripeSubscription->current_period_end),
-        ])->save();
-
-        return $this;
+        return return $this->{$this->getProviderFunctionAccesor()}.ucfirst(__FUNCTION__)();        
     }
 
     /**
@@ -396,65 +310,19 @@ class ServiceIntegrationSubscription extends Model
      */
     public function markAsCanceled()
     {
-        $this->fill([
-            'will_be_canceled' => false,
-            'status'           => self::STRIPE_STATUS_CANCELED,
-            'ends_at'          => Carbon::now(),
-        ])->save();
+        $provider = ucfirst($this->getProviderFunctionAccesor());
+
+        return $this->{"markAsCanceledWith{$provider}Status"}();
     }
 
     /**
-     * Update the underlying Stripe subscription information for the model.
+     * Sync the provider status of the subscription.
      *
-     * @param  array  $options
-     * @return \Stripe\Subscription
+     * @return void
      */
-    public function updateStripeSubscription(array $options = [])
+    public function syncProviderStatus()
     {
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->update(
-            $this->subscription_id, $options
-        );
-
-        return $this->freshStripeSubscription($stripeSubscription);
-    }
-    
-
-    /**
-     * Get the subscription as a Stripe subscription object.
-     *
-     * @param  array  $expand
-     * @return \Stripe\Subscription
-     */
-    public function asStripeSubscription(array $expand = [])
-    {
-        if ($this->recentlyStripeSubscrtionFetched instanceOf StripeSubscription) {
-            return $this->recentlyStripeSubscrtionFetched;
-        }
-
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->retrieve(
-            $this->subscription_id, ['expand' => $expand]
-        );
-
-        return $this->freshStripeSubscription($stripeSubscription);
-    }
-
-    /**
-     * Fresh the local memory cache
-     *
-     * @param StripeSubscription $stripeSubscription
-     * @return StripeSubscription
-     */
-    protected function freshStripeSubscription(StripeSubscription $stripeSubscription)
-    {
-        return $this->recentlyStripeSubscrtionFetched = $stripeSubscription;
-    }
-
-    /**
-     * Accessors
-     */
-    public function getStatusDescriptionAttribute()
-    {
-        return static::resolveStripeStatusDescription($this->status);
+        return $this->{$this->getProviderFunctionAccesor()}.'SyncStatus'();
     }
 
     /**
