@@ -2,6 +2,11 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Models\ProviderMethods;
 
+use Carbon\Carbon;
+use LogicException;
+use DateTimeInterface;
+use Stripe\Subscription as StripeSubscription;
+
 class StripeMethods
 {
     /**
