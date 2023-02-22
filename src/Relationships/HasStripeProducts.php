@@ -2,6 +2,8 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
+use BlackSpot\StripeMultipleAccounts\ProductBuilder;
+
 trait HasStripeProducts
 {
   /**
@@ -17,6 +19,11 @@ trait HasStripeProducts
     });
   }
 
+  public function newStripeProduct($serviceIntegrationId, $productName)
+  {
+    return new ProductBuilder($this, $serviceIntegrationId, $productName);
+  }
+
   /**
   * Get the stripe_products
   *
@@ -24,6 +31,6 @@ trait HasStripeProducts
   */
   public function stripe_products()
   {
-    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.products'), 'owner');
+    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.products'), 'model');
   }
 }

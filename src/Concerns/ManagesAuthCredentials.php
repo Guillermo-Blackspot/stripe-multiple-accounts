@@ -84,14 +84,19 @@ trait ManagesAuthCredentials
         if ($this->stripeServiceIntegrationRecentlyFetched !== null) {
             return $this->stripeServiceIntegrationRecentlyFetched;
         }
-        
-        $query = $this->getStripeServiceIntegrationQuery($serviceIntegrationId);
+                
+        // ServiceIntegration.php (Model)
+        if (isset($this->id) && self::class == config('stripe-multiple-accounts.relationship_models.stripe_accounts')) {
+            $service = (object) $this->toArray();
+        }else{
+            $query = $this->getStripeServiceIntegrationQuery($serviceIntegrationId);
 
-        if (is_null($query)) {
-            return ;
+            if (is_null($query)) {
+                return ;
+            }
+            
+            $service = $query->first();
         }
-
-        $service = $query->first();
         
         if (is_null($service)) {
             return ;

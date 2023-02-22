@@ -44,9 +44,9 @@ class StripeProduct extends Model
         return json_encode($value, JSON_UNESCAPED_UNICODE);
     }
 
-    public function owner()
+    public function model()
     {
-        return $this->morphTo('owner');   
+        return $this->morphTo('model');   
     }
 
     public function service_integration()
