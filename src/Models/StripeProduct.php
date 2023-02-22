@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 
-class ServiceIntegrationProduct extends Model
+class StripeProduct extends Model
 {
     use ManagesAuthCredentials;
     
@@ -15,8 +15,8 @@ class ServiceIntegrationProduct extends Model
      *
      * @var string
      */
-    protected $table = 'service_integration_products';
-    public const TABLE_NAME = 'service_integration_products';
+    protected $table = 'stripe_products';
+    public const TABLE_NAME = 'stripe_products';
 
     /**
      * The attributes that aren't mass assignable.
@@ -54,7 +54,7 @@ class ServiceIntegrationProduct extends Model
         return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.stripe_accounts'), 'service_integration_id');
     }
 
-    public function service_integration_subscription_items()
+    public function stripe_subscription_items()
     {
         return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 's_product_id');
     }

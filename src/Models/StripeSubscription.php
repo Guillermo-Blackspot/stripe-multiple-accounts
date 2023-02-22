@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use LogicException;
 use Stripe\Subscription as StripeSubscription;
 
-class ServiceIntegrationSubscription extends Model
+class StripeSubscription extends Model
 {
     use ManagesAuthCredentials;
     use InteractsWithPaymentBehavior;
@@ -26,8 +26,8 @@ class ServiceIntegrationSubscription extends Model
      *
      * @var string
      */
-    protected $table = 'service_integration_subscriptions';
-    public const TABLE_NAME = 'service_integration_subscriptions';
+    protected $table = 'stripe_subscriptions';
+    public const TABLE_NAME = 'stripe_subscriptions';
 
     public const STRIPE_STATUS_INCOMPLETE = 'incomplete';
     public const STRIPE_STATUS_INCOMPLETE_EXPIRED = 'incomplete_expired';
@@ -339,7 +339,7 @@ class ServiceIntegrationSubscription extends Model
         return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.stripe_accounts'), 'service_integration_id');
     }
 
-    public function service_integration_subscription_items()
+    public function stripe_subscription_items()
     {
         return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 's_subscription_id');
     }    

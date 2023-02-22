@@ -1,10 +1,10 @@
 <?php
 
 use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegration;
-use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationProduct;
-use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription;
-use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscriptionItem;
-use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationUser;
+use BlackSpot\StripeMultipleAccounts\Models\StripeProduct;
+use BlackSpot\StripeMultipleAccounts\Models\StripeSubscription;
+use BlackSpot\StripeMultipleAccounts\Models\StriprSubscriptionItem;
+use BlackSpot\StripeMultipleAccounts\Models\StripeUser;
 
 return [    
 
@@ -13,10 +13,10 @@ return [
      */
     'relationship_models' => [
         'stripe_accounts'    => ServiceIntegration::class,
-        'products'           => ServiceIntegrationProduct::class,
-        'customers'          => ServiceIntegrationUser::class,
-        'subscriptions'      => ServiceIntegrationSubscription::class,
-        'subscription_items' => ServiceIntegrationSubscriptionItem::class,
+        'products'           => StripeProduct::class,
+        'customers'          => StripeUser::class,
+        'subscriptions'      => StripeSubscription::class,
+        'subscription_items' => StriprSubscriptionItem::class,
         'local_users'        => \App\Models\User::class
     ],
  

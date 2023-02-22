@@ -35,7 +35,7 @@ trait ManagesPaymentMethods
             return ;
         }        
         
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return ;
@@ -67,7 +67,7 @@ trait ManagesPaymentMethods
             return $emptyStripeCollection;
         }
         
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return $emptyStripeCollection;
@@ -83,7 +83,7 @@ trait ManagesPaymentMethods
      * 
      * @param int|null $serviceIntegrationId
      * @param string $paymentMethodId
-     * @return \Stripe\PaymentMethod
+     * @return \Stripe\PaymentMethod|null
      */
     public function addStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
     {    
@@ -93,7 +93,7 @@ trait ManagesPaymentMethods
             return ;
         }
         
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return ;
@@ -110,7 +110,7 @@ trait ManagesPaymentMethods
      * @param int|null $serviceIntegrationId
      * @param string $paymentMethodId
      * 
-     * @return void
+     * @return void|null
      */
     public function deleteStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
     {    
@@ -120,7 +120,7 @@ trait ManagesPaymentMethods
             return ;
         }
         
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return ;
@@ -156,6 +156,20 @@ trait ManagesPaymentMethods
     /**
      * Update customer's default payment method.
      *
+     * alias of updateDefaultStripePaymentMethod
+     * 
+     * @param  int|null  $serviceIntegrationId
+     * @param  string  $paymentMethodId
+     * @return \Stripe\PaymentMethod|null
+     */
+    public function setDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId)
+    {
+        return $this->updateDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
+    }
+
+    /**
+     * Update customer's default payment method.
+     *
      * @param  int|null  $serviceIntegrationId
      * @param  string  $paymentMethodId
      * @return \Stripe\PaymentMethod|null
@@ -178,7 +192,6 @@ trait ManagesPaymentMethods
             'invoice_settings' => ['default_payment_method' => $paymentMethod->id],
         ]);
 
-
         return $paymentMethod;
     }
 
@@ -194,7 +207,7 @@ trait ManagesPaymentMethods
      */
     public function getDefaultStripePaymentMethod($serviceIntegrationId = null)
     {        
-        $customer = $this->getRelatedStripeCustomer($serviceIntegrationId);
+        $customer = $this->getStripeCustomer($serviceIntegrationId);
 
         if (is_null($customer)) {
             return ;

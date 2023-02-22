@@ -57,60 +57,90 @@ All available methods
 ...
 ```php
 
-    /** Note: 
-     * 
-     * All the methods that fetch or send data to stripe 
-     * can be throws exceptions
-     * 
-     * getRelatedStripeCustomer
-     * createOrGetRelatedStripeCustomer
-     * getRelatedStripeCustomerPaymentMethods
-     * attachStripeCustomerPaymentMethodResource
-     * detachStripeCustomerPaymentMethodResource
-     */
+    $serviceIntegrationId = 1; // sucursal merida con cuenta de stripe 1;
 
-    $user = \App\Models\User::first();
-
-    // or
+    // Siempre se pasa como primer parametro la sucursal o cuenta de stripe el service_integration_id que tiene el payload de stripe
+    // Puede ser nulo y tomara la sucursal que este definida por metodos magicos 
+    // Estos metodos magicos deben definirse en el modelo Que use el trait "ManagesAuthCredentials.php"
+    /* 
+        if (isset($this->id) && self::class == config('stripe-multiple-accounts.relationship_models.stripe_accounts')) {
+            // Si el modelo es ServiceIntegration definido en el config, tomara el id
+        }else if (isset($this->service_integration_id)){
+            // Sel el modelo tiene un "service_integration_id" relacionado tomara ese atributo
+        }else if (method_exists($this, 'getStripeServiceIntegrationId')){
+            // Si el modelo tiene un metodo llamado "getStripeServiceIntegrationId" tomara el valor de esa funcion
+        }else if (method_exists($this, 'getStripeServiceIntegrationOwnerId') && method_exists($this,'getStripeServiceIntegrationOwnerType')){
+            // Si el modelo tiene un metodo llamado "getStripeServiceIntegrationOwnerId" y "getStripeServiceIntegrationOwnerType" tomara el valor de esas funciones 
+            // y las aplicara en un where
+            // Esto se usa cuando a los usuarios no se les asigna un servicio de stripe directamente si no por otro modelo
+            // entonces si el usuario cuenta con una sucursal y la sucursal tiene un servicio de stripe
+            // se puede determinar que la cuenta de stripe es la primera que encuentre en asociada a la sucursal del usuario dado la columna "owner" de service_integrations
+            
+            function getStripeServiceIntegrationOwnerId(){
+                return $this->subsidiary->id;
+            }
+            function getStripeServiceIntegrationOwnerId(){
+                return '\App\Models\Subsidiary';
+            }
+        }     
+    */
+    // stripe_key
+    // stripe_secret, etc..
 
     $user = \Auth::user();
 
-    //:  \Models\ServiceIntegration
-    $user->resolveStripeServiceIntegration(); 
-    
-    $user->getStripeServiceIntegration();
-    
-    //:  String
-    $user->getRelatedStripeSecretKey();
+    // ManagesAuthCredentials.php
 
-    $user->getRelatedStripePublicKey();
+    $user->getStripeClientConnection($serviceIntegrationId);            // nullable
+    $user->getStripeServiceIntegration($serviceIntegrationId);          // nullable
+    $user->assertStripeServiceIntegrationExists($serviceIntegrationId); // terminal
+    $user->getRelatedStripeSecretKey($serviceIntegrationId);            // nullable
+    $user->getRelatedStripePublicKey($serviceIntegrationId);            // nullable
 
-    //:  \Stripe\Customer|null
-    $user->relateCustomerWithStripeAccount(); // Alias of createStripeCustomer
+    // ManagesCustomer.php
+    $user->stripeCustomerExists($serviceIntegrationId);                        // bool
+    $user->getStripeCustomer($serviceIntegrationId, $opts = []);               // nullable
+    $user->getStripeCustomerId($serviceIntegrationId);                         // nullable
+    $user->createStripeCustomerIfNotExists($serviceIntegrationId, $opts = []); // nullable
+    $user->createOrGetStripeCustomer($serviceIntegrationId, $opts = []);       // nullable
+    $user->updateStripeCustomer($serviceIntegrationId, $opts = []);            // nullable
+    $user->setStripeCustomerToCache(new \Stripe\Customer);                     // void
+    $user->setStripeCustomerIdToCache($customerId);                            // void
 
-    $user->createOrGetRelatedStripeCustomer();
-    
-    $user->createStripeCustomer();
+    // ManagesPaymentMethods.php
+    $user->createStripeSetupIntent($serviceIntegrationId, $opts = []);                           // nullable
+    $user->getStripePaymentMethods($serviceIntegrationId, $type = 'card');                       // \Stripe\Collection
+    $user->addStripePaymentMethod($serviceIntegrationId, $paymentMethodId);                      // nullable
+    $user->deleteStripePaymentMethod($serviceIntegrationId, $paymentMethodId);                   // nullable
+    $user->getOrAddStripePaymentMethod($serviceIntegrationId, $paymentMethodId, $type = 'card'); // nullable
+    $user->setDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId);               // nullable alias of updateDefaultStripePaymentMethod
+    $user->updateDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId);            // nullable
+    $user->getDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId);               // nullable
 
-    $user->stripeCustomerExists(); // Determine if stripe customer exists
+    // ManagesPaymentMethodSources.php
+    $user->addStripePaymentMethodSource($serviceIntegrationId = null, $tokenId, $opts = [])      // nullable - LEGACY
+    $user->deleteStripePaymentMethodSource($serviceIntegrationId = null, $sourceId, $opts = [])  // nullable - LEGACY
 
-    $user->getRelatedStripeCustomer();
+    // PerformsCharges.php
+    $user->makeStripeCharge($serviceIntegrationId, $amount, $paymentMethodId, $opts = []);                               // nullable
+    $user->stripePay($serviceIntegrationId, $amount, $opts = []);                                                        // nullable
+    $user->createStripePaymentIntentWith($serviceIntegrationId, $amount, $paymentMethods = ['card','oxxo'], $opts = []); // nullable
+    $user->createStripePaymentIntent($serviceIntegrationId, $amount, $opts = []);                                        // nullable
+    $user->refundStripePaymentIntent($serviceIntegrationId, $paymentIntentId, $opts = []);                               // nullable
+    $user->findStripePaymentIntent($serviceIntegrationId, $paymentIntentId);                                             // nullable
 
-    $user->getRelatedStripeCustomerId(); // related customer_id
+    // ManagesSubscriptions.php
 
-    //:   \Stripe\StripeClient
-    $user->getStripeClientConnection();
+    $identifier = "usr_{$userId}_prod_{$productId}";
+    $name       = 'Plan anual';
+    $items      = \BlackSpot\StripeMultipleAccounts\Models\StripeProducts::get(['id','allow_recurring','default_price_id','service_integration_id']); 
 
-    //:   PaymentMethod
-    $user->getRelatedStripeCustomerPaymentMethods(); // \Stripe\Collection
-
-    $user->attachStripeCustomerPaymentMethodResource(); // \Stripe\BankAccount|\Stripe\Card|\Stripe\Source|null
-
-    $user->detachStripeCustomerPaymentMethodResource(); // \Stripe\PaymentMethod|null
+    $user->newStripeSubscription($serviceIntegrationId, $identifier, $name, $items); // nullable
 
 
-    //:   void
-    $user->clearStripeBillableCache(); // Clear the memory cache
+    /** @var \BlackSpot\StripeMultipleAccounts\Models\StripeUser */
+    $stripeUser = user()->stripe_users()->where('service_integration_id', $serviceIntegrationId)->first();
+
 ```
 
 ...

@@ -24,7 +24,7 @@ class CreateServiceIntegrationTables extends Migration
             $table->timestamps();
         });
 
-        Schema::create('service_integration_users', function (Blueprint $table) {
+        Schema::create('stripe_users', function (Blueprint $table) {
             $table->id();        
 
             $table->morphs('model'); // \App\Models\User
@@ -100,12 +100,12 @@ class CreateServiceIntegrationTables extends Migration
     {
         Schema::dropIfExists('service_integrations');
 
-        Schema::table('service_integration_users', function (Blueprint $table) {
+        Schema::table('stripe_users', function (Blueprint $table) {
             $table->dropForeign(['service_integration_id']);
             $table->dropColumn('service_integration_id');            
         }); 
 
-        Schema::dropIfExists('service_integration_users');
+        Schema::dropIfExists('stripe_users');
 
         Schema::table('service_integration_products', function (Blueprint $table) {
             $table->dropForeign(['service_integration_id']);

@@ -8,14 +8,14 @@ use BlackSpot\StripeMultipleAccounts\Concerns\ManagesPaymentMethods;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesPaymentMethodSources;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesSubscriptions;
 use BlackSpot\StripeMultipleAccounts\Concerns\PerformsCharges;
-use BlackSpot\StripeMultipleAccounts\Relationships\HasServiceIntegrationSubscriptions;
-use BlackSpot\StripeMultipleAccounts\Relationships\HasServiceIntegrationUsers;
+use BlackSpot\StripeMultipleAccounts\Relationships\HasStripeSubscriptions;
+use BlackSpot\StripeMultipleAccounts\Relationships\HasStripeUsers;
 
 trait Billable
 {
     use ManagesAuthCredentials;
-    use HasServiceIntegrationUsers;
-    use HasServiceIntegrationSubscriptions;
+    use HasStripeUsers;
+    use HasStripeSubscriptions;
     use ManagesCustomer;
     use ManagesPaymentMethodSources;
     use ManagesPaymentMethods;

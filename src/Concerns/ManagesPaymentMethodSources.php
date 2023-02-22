@@ -3,7 +3,7 @@
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
 /**
- * @deprecated
+ * @deprecated legacy
  */
 trait ManagesPaymentMethodSources
 {
@@ -12,27 +12,22 @@ trait ManagesPaymentMethodSources
      *  
      * Send to stripe
      * 
-     * @param int|string|null $serviceIntegrationId or you can pass directly the $tokenId instead it
+     * @param int|null $serviceIntegrationId
      * @param string|null $tokenId
      * @param array $opts
      * @deprecated 
      * @throws \Stripe\Exception\ApiErrorException
      * @return \Stripe\BankAccount|\Stripe\Card|\Stripe\Source|null
      */
-    public function addStripeCustomerPaymentMethodSource($serviceIntegrationId = null, $tokenId = null, $opts = [])
+    public function addStripePaymentMethodSource($serviceIntegrationId = null, $tokenId, $opts = [])
     {
-        if (!is_numeric($serviceIntegrationId)) {
-            $tokenId = $serviceIntegrationId;
-            $serviceIntegrationId = null;
-        }
-
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
         if (is_null($stripeClientConnection)) {
             return ;
         }
 
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return null;
@@ -50,26 +45,21 @@ trait ManagesPaymentMethodSources
      * 
      * Send to stripe
      * 
-     * @param int|null $serviceIntegrationId or you can pass directly the $paymentMethodId instead it
-     * @param string|null $sourceId
+     * @param int|null $serviceIntegrationId
+     * @param string $sourceId
      * @param array $opts
      * @deprecated
      * @return \Stripe\PaymentMethod|null
      */
-    public function deleteStripeCustomerPaymentMethodSource($serviceIntegrationId = null, $sourceId = null, $opts = [])
+    public function deleteStripePaymentMethodSource($serviceIntegrationId = null, $sourceId, $opts = [])
     {
-        if (!is_numeric($serviceIntegrationId)) {
-            $sourceId = $serviceIntegrationId;
-            $serviceIntegrationId = null;
-        }
-
         $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
 
         if (is_null($stripeClientConnection)) {
             return ;
         }
 
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return null;

@@ -5,15 +5,15 @@ namespace BlackSpot\StripeMultipleAccounts\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ServiceIntegrationSubscriptionItem extends Model
+class StripeSubscriptionItem extends Model
 {
     /** 
      * The table associated with the model.
      *
      * @var string
      */
-    protected $table = 'service_integration_subscription_items';
-    public const TABLE_NAME = 'service_integration_subscription_items';
+    protected $table = 'stripe_subscription_items';
+    public const TABLE_NAME = 'stripe_subscription_items';
 
     /**
      * The attributes that aren't mass assignable.
@@ -41,12 +41,12 @@ class ServiceIntegrationSubscriptionItem extends Model
         return json_encode($value, JSON_UNESCAPED_UNICODE);
     }    
 
-    public function service_integration_subscription()
+    public function stripe_subscription()
     {
         return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.subscriptions'), 's_subscription_id');
     }
 
-    public function service_integration_product()
+    public function stripe_product()
     {
         return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.products'), 's_product_id');
     }

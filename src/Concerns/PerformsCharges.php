@@ -32,6 +32,8 @@ trait PerformsCharges
     /**
      * Create a new PaymentIntent instance.
      *
+     * automatic_payment_methods is enabled
+     * 
      * @param  int|null  $serviceIntegrationId
      * @param  int  $amount
      * @param  array  $opts
@@ -82,7 +84,7 @@ trait PerformsCharges
             return ;
         }
 
-        $stripeCustomerId = $this->getRelatedStripeCustomerId($serviceIntegrationId);
+        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
 
         if (is_null($stripeCustomerId)) {
             return ;

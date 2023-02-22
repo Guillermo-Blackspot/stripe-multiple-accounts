@@ -11,7 +11,6 @@ use Stripe\StripeClient;
  * Manages the auth credentials to connect with stripe
  * 
  * @method getStripeClientConnection($serviceIntegrationId = null)
- * @method resolveStripeServiceIntegration($serviceIntegrationId = null)
  * @method getStripeServiceIntegrationQuery($serviceIntegrationId = null)
  * @method getStripeServiceIntegration($serviceIntegrationId = null)
  * @method assertStripeServiceIntegrationExists($serviceIntegrationId = null)
@@ -37,22 +36,6 @@ trait ManagesAuthCredentials
         }
 
         return new StripeClient($stripeSecretKey);
-    }
-
-    /**
-     * Get the service integrations of Stripe
-     * 
-     * @param int|null $serviceIntegrationId
-     * 
-     * @return object
-     */
-    public function resolveStripeServiceIntegration($serviceIntegrationId = null)
-    {
-        if ($this->stripeServiceIntegrationRecentlyFetched !== null) {
-            return $this->stripeServiceIntegrationRecentlyFetched;
-        }
-
-        return $this->stripeServiceIntegrationRecentlyFetched = $this->getStripeServiceIntegration($serviceIntegrationId);
     }
 
     /**
@@ -155,7 +138,7 @@ trait ManagesAuthCredentials
     {
         $payloadColumn     = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
         $stripeSecret      = config('stripe-multiple-accounts.stripe_integrations.payload.stripe_secret', 'stripe_secret');
-        $stripeIntegration = $this->resolveStripeServiceIntegration($serviceIntegrationId);
+        $stripeIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
 
         if (is_null($stripeIntegration)) {
             return ;
@@ -178,7 +161,7 @@ trait ManagesAuthCredentials
     {
         $payloadColumn    = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
         $stripePublicKey  = config('stripe-multiple-accounts.stripe_integrations.payload.stripe_key', 'stripe_key');
-        $stripeIntegration = $this->resolveStripeServiceIntegration($serviceIntegrationId);
+        $stripeIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
 
         if (is_null($stripeIntegration)) {
             return ;

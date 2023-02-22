@@ -5,7 +5,7 @@ namespace BlackSpot\StripeMultipleAccounts\Models;
 use Illuminate\Database\Eloquent\Model;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 
-class ServiceIntegrationUser extends Model
+class StripeUser extends Model
 {
     use ManagesAuthCredentials;
 
@@ -14,9 +14,8 @@ class ServiceIntegrationUser extends Model
      *
      * @var string
      */
-    protected $table = 'service_integration_users';
-    public const TABLE_NAME = 'service_integration_users';
-
+    protected $table = 'stripe_users';
+    public const TABLE_NAME = 'stripe_users';
 
     /**
      * The attributes that are mass assignable.

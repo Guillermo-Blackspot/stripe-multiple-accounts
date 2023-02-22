@@ -2,27 +2,27 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
-trait HasServiceIntegrationProducts
+trait HasStripeProducts
 {
   /**
    * Boot on delete method
    */
-  public static function bootHasServiceIntegrationProducts()
+  public static function bootHasStripeProducts()
   {
     static::deleting(function ($model) {
         if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
             return;
         }
-        $model->service_integration_products()->delete();
+        $model->stripe_products()->delete();
     });
   }
 
   /**
-  * Get the service_integration_products
+  * Get the stripe_products
   *
   * @return \Illuminate\Database\Eloquent\Relations\MorphToMany
   */
-  public function service_integration_products()
+  public function stripe_products()
   {
     return $this->morphMany(config('stripe-multiple-accounts.relationship_models.products'), 'owner');
   }
