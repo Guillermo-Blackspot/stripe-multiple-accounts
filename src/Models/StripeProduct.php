@@ -9,6 +9,13 @@ use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 class StripeProduct extends Model
 {
     use ManagesAuthCredentials;
+
+    protected ?\Stripe\Product $recentlyStripeProductFetched = null;
+
+    public function FunctionName(Type $var = null)
+    {
+        # code...
+    }
     
     /** 
      * The table associated with the model.
@@ -48,6 +55,39 @@ class StripeProduct extends Model
     {
         return $this->morphTo('model');   
     }
+
+
+    /**
+     * Get the stripe product
+     *
+     * @return \Stripe\Product
+     */
+    public function asStripeProduct()
+    {
+        if ($this->recentlyStripeProductFetched instanceof \Stripe\Product) {
+            return $this->recentlyStripeProductFetched;
+        }
+
+        $stripeClient = $this->getStripeClientConnection();
+
+        if (is_null($stripeClient)) {
+            return ;
+        }
+
+        return $this->recentlyStripeProductFetched = $stripeClient->products->retrieve($this->product_id);
+    }
+
+    /**
+     * Set on the memory the stripe product instance
+     *
+     * @param \Stripe\Product $stripeProduct
+     * @return \Stripe\Product
+     */
+    public function setAsStripeProduct(\Stripe\Product $stripeProduct)
+    {
+        return $this->recentlyStripeProductFetched = $stripeProduct;
+    }
+
 
     public function service_integration()
     {

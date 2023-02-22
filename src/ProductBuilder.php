@@ -189,7 +189,7 @@ class ProductBuilder
         if (! isset($priceData['currency'])) {
             throw InvalidStripeProduct::missingRequiredProperties(__FUNCTION__, 'currency');
         }
-        
+
         $this->defaultPriceData = $priceData;
 
         return $this;
@@ -222,6 +222,8 @@ class ProductBuilder
             'product_id'       => $stripeProduct->id,
             'default_price_id' => $stripeProduct->default_price,
         ]);
+
+        $product->setAsStripeProduct($stripeProduct);
 
         return $product;
     }
