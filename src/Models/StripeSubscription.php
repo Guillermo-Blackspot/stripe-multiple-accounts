@@ -341,6 +341,6 @@ class StripeSubscription extends Model
 
     public function stripe_subscription_items()
     {
-        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 's_subscription_id');
+        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 'stripe_subscription_id');
     }    
 }

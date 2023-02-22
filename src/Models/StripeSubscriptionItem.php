@@ -43,11 +43,11 @@ class StripeSubscriptionItem extends Model
 
     public function stripe_subscription()
     {
-        return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.subscriptions'), 's_subscription_id');
+        return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.subscriptions'), 'stripe_subscription_id');
     }
 
     public function stripe_product()
     {
-        return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.products'), 's_product_id');
+        return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.products'), 'stripe_product_id');
     }
 }
