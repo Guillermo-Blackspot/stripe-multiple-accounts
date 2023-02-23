@@ -101,6 +101,7 @@ class StripeProduct extends Model
             'description'      => $stripeProduct->description,
             'default_price_id' => $stripeProduct->default_price,
             'active'           => $stripeProduct->active,
+            'unit_label'       => $stripeProduct->unit_label,
         ])->save();
 
         $this->setAsStripeProduct($stripeProduct);

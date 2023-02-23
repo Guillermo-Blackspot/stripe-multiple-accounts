@@ -212,6 +212,7 @@ class ProductBuilder
             'allow_recurring'        => $this->allowsRecurringForPayload(),
             'service_integration_id' => $this->serviceIntegrationId,
             'active'                 => $this->active,
+            'unit_label'             => $this->unitLabel,
             'metadata'               => [],
         ]);
 
