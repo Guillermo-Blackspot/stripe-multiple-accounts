@@ -305,12 +305,10 @@ class SubscriptionBuilder
         
         $subscription = $this->createSubscription($stripeSubscription);
 
-        $stripeSubscription->subscriptions->update($stripeSubscription->id, [
-            'metadata' => [
-                'stripe_subscription_id'   => $subscription->id,
-                'stripe_subscription_type' => config('stripe-multiple-accounts.relationship_models.subscriptions'),
-            ]
-        ]);
+        $stripeSubscription->subscriptions->update($stripeSubscription->id, array_merge($stripeSubscription['metadata'], [
+            'stripe_subscription_id'   => $subscription->id,
+            'stripe_subscription_type' => config('stripe-multiple-accounts.relationship_models.subscriptions'),
+        ]));
 
         //$this->handlePaymentFailure($subscription, $paymentMethod);
 
@@ -325,10 +323,6 @@ class SubscriptionBuilder
      */
     protected function createSubscription(StripeSubscription $stripeSubscription)
     {
-        // if (($subscription = $this->owner->service_integration_subscriptions()->where('subscription_id', $stripeSubscription->id)->first())) {
-        //     return $subscription;
-        // }
-
         $firstItem = $stripeSubscription->items->first();
         $isSinglePrice = $stripeSubscription->items->count() === 1;
 
@@ -374,7 +368,7 @@ class SubscriptionBuilder
      */
     protected function getStripeCustomer($paymentMethodId = null, array $options = [])
     {
-        $customer = $this->owner->createOrGetRelatedStripeCustomer($this->serviceIntegrationId, $options);
+        $customer = $this->owner->createOrGetStripeCustomer($this->serviceIntegrationId, $options);
 
         if ($paymentMethodId) {
             $this->owner->updateDefaultStripePaymentMethod($this->serviceIntegrationId, $paymentMethodId);
@@ -430,10 +424,10 @@ class SubscriptionBuilder
                     $payload = [
                         'price' => $item['default_price_id'],
                         'metadata' => [
-                            'service_integration_product_id'   => $item->id,
-                            'service_integration_product_type' => get_class($item),
-                            'owner_id'                         => $item->owner_id,          
-                            'owner_type'                       => $item->owner_type,
+                            'stripe_product_id'   => $item->id,
+                            'stripe_product_type' => get_class($item),
+                            'owner_id'            => $item->owner_id,          
+                            'owner_type'          => $item->owner_type,
                         ]
                     ];
 

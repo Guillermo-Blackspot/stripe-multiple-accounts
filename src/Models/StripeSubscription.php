@@ -12,7 +12,6 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
-use Stripe\Subscription as StripeSubscription;
 
 class StripeSubscription extends Model
 {
