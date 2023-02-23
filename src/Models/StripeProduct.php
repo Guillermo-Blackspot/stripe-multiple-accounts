@@ -98,7 +98,7 @@ class StripeProduct extends Model
 
         $this->fill([
             'name'             => $stripeProduct->name,
-            'description'      => $stripeProduct->description,
+            //'description'      => $stripeProduct->description,
             'default_price_id' => $stripeProduct->default_price,
             'active'           => $stripeProduct->active,
             'unit_label'       => $stripeProduct->unit_label,
