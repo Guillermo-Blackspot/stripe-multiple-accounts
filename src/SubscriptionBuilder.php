@@ -298,12 +298,19 @@ class SubscriptionBuilder
         }
 
         $stripeCustomer = $this->getStripeCustomer($paymentMethodId, $customerOptions);
-        
+
         $stripeSubscription = $this->owner->getStripeClientConnection($this->serviceIntegrationId)->subscriptions->create(array_merge(
             ['customer' => $stripeCustomer->id], $this->buildPayload(), $subscriptionOptions
         ));
-
+        
         $subscription = $this->createSubscription($stripeSubscription);
+
+        $stripeSubscription->subscriptions->update($stripeSubscription->id, [
+            'metadata' => [
+                'stripe_subscription_id'   => $subscription->id,
+                'stripe_subscription_type' => config('stripe-multiple-accounts.relationship_models.subscriptions'),
+            ]
+        ]);
 
         //$this->handlePaymentFailure($subscription, $paymentMethod);
 
@@ -318,9 +325,9 @@ class SubscriptionBuilder
      */
     protected function createSubscription(StripeSubscription $stripeSubscription)
     {
-        if (($subscription = $this->owner->service_integration_subscriptions()->where('subscription_id', $stripeSubscription->id)->first())) {
-            return $subscription;
-        }
+        // if (($subscription = $this->owner->service_integration_subscriptions()->where('subscription_id', $stripeSubscription->id)->first())) {
+        //     return $subscription;
+        // }
 
         $firstItem = $stripeSubscription->items->first();
         $isSinglePrice = $stripeSubscription->items->count() === 1;
@@ -337,7 +344,7 @@ class SubscriptionBuilder
             'will_be_canceled'       => false,
             'billing_cycle_anchor'   => $stripeSubscription->current_period_start,
             'current_period_start'   => $stripeSubscription->current_period_start,
-            'ends_at'                => $stripeSubscription->current_period_end,            
+            'current_period_ends_at' => $stripeSubscription->current_period_end,            
             'service_integration_id' => $this->serviceIntegrationId,
             //'price_id'        => $isSinglePrice ? $firstItem->price->id : null,
         ]);
@@ -466,8 +473,10 @@ class SubscriptionBuilder
     protected function getMetadataForPayload()
     {
         return array_merge($this->metadata, [
-            'owner_id'   => $this->owner->id,
-            'owner_type' => get_class($this->owner),
+            'owner_id'                 => $this->owner->id,
+            'owner_type'               => get_class($this->owner),
+            'service_integration_id'   => $this->serviceIntegrationId,
+            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
         ]);
     }
 

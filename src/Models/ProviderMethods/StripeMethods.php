@@ -183,7 +183,7 @@ trait StripeMethods
      */
     public function stripeOnGracePeriod()
     {
-        return $this->ends_at && $this->ends_at->isFuture();
+        return $this->current_period_ends_at && $this->current_period_ends_at->isFuture();
     }
     
 
@@ -217,7 +217,7 @@ trait StripeMethods
         $this->fill([
             'will_be_canceled'     => true,
             'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'ends_at'              => $endsAt,
+            'current_period_ends_at'              => $endsAt,
             'status'               => $stripeSubscription->status,
         ])->save();
 
@@ -247,7 +247,7 @@ trait StripeMethods
             'will_be_canceled'     => true,
             'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
             'status'               => $stripeSubscription->status,    
-            'ends_at'              => $endsAt,
+            'current_period_ends_at'              => $endsAt,
         ])->save();
 
         return $this;
@@ -315,7 +315,7 @@ trait StripeMethods
             'will_be_cancelated'   => false,
             'status'               => $stripeSubscription->status,
             'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'ends_at'              => Carbon::createFromTimestamp($stripeSubscription->current_period_end),
+            'current_period_ends_at'              => Carbon::createFromTimestamp($stripeSubscription->current_period_end),
         ])->save();
 
         return $this;
@@ -333,7 +333,7 @@ trait StripeMethods
         $this->fill([
             'will_be_canceled' => false,
             'status'           => self::STRIPE_STATUS_CANCELED,
-            'ends_at'          => Carbon::now(),
+            'current_period_ends_at'          => Carbon::now(),
         ])->save();
     }
 

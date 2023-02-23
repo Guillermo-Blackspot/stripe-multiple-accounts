@@ -55,7 +55,7 @@ class StripeSubscription extends Model
      * @var array
      */
     protected $casts = [
-        'ends_at'              => 'datetime',
+        'current_period_ends_at'              => 'datetime',
         'quantity'             => 'integer',
         'current_period_start' => 'datetime',
         'trial_ends_at'        => 'datetime',
