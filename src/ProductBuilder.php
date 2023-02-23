@@ -87,7 +87,7 @@ class ProductBuilder
     public function packageDimensions($dimensions)
     {
         $missingProperties = Collection::make(array_keys((array) $dimensions))->filter(function($property){
-            return !in_array($property, ['height','length','weight','width'])
+            return !in_array($property, ['height','length','weight','width']);
         });
 
         if ($missingProperties->isNotEmpty()) {            
@@ -211,14 +211,15 @@ class ProductBuilder
             'current_price'          => $this->getCurrentPriceForPayload(),
             'allow_recurring'        => $this->allowsRecurringForPayload(),
             'service_integration_id' => $this->serviceIntegrationId,
-            'metadata'               => []
+            'active'                 => $this->active,
+            'metadata'               => [],
         ]);
 
         // Creating the product in stripe
         $stripeProduct = $stripeClient->products->create($this->buildPayload($product));
 
         // Associating the service product with the local model
-        $product->update([
+        $product->update([            
             'product_id'       => $stripeProduct->id,
             'default_price_id' => $stripeProduct->default_price,
         ]);
@@ -248,7 +249,7 @@ class ProductBuilder
         ]);
 
         $payload['metadata']  = $this->getMetadataForPayload($product);
-        $payload['acive']     = $this->active;
+        $payload['active']    = $this->active;
         
         if ($this->shippable !== null) {
             $payload['shippable'] = $this->shippable;            
@@ -266,8 +267,8 @@ class ProductBuilder
     protected function getMetadataForPayload($product)
     {
         return array_merge([
-            'service_integration_id'   => $this->serviceIntegrationId.
-            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts')
+            'service_integration_id'   => $this->serviceIntegrationId,
+            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
             'model_id'                 => $this->model->id,
             'model_type'               => get_class($this->model),
             'stripe_product_id'        => $product->id,

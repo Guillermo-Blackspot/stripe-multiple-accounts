@@ -11,11 +11,6 @@ class StripeProduct extends Model
     use ManagesAuthCredentials;
 
     protected ?\Stripe\Product $recentlyStripeProductFetched = null;
-
-    public function FunctionName(Type $var = null)
-    {
-        # code...
-    }
     
     /** 
      * The table associated with the model.
@@ -87,6 +82,80 @@ class StripeProduct extends Model
     {
         return $this->recentlyStripeProductFetched = $stripeProduct;
     }
+
+
+    /**
+     * Update stripe product
+     * 
+     * Local query and Stripe Api connection
+     *
+     * @param array $opts
+     * @return self
+     */
+    public function updateStripeProduct($opts)
+    {
+        $stripeProduct = $this->getStripeClientConnection()->products->update($this->product_id, (array) $opts);
+
+        $this->fill([
+            'name'             => $stripeProduct->name,
+            'description'      => $stripeProduct->description,
+            'default_price_id' => $stripeProduct->default_price,
+            'active'           => $stripeProduct->active,
+        ])->save();
+
+        $this->setAsStripeProduct($stripeProduct);
+
+        return $this;
+    }
+
+
+    /**
+     * Delete stripe product
+     * 
+     * Local query and Stripe Api connection
+     * 
+     * The stripe product will be disabled and the local register will be deleted
+     * StripePHP api not allows delete products, you must delete it from the dashboard
+     *
+     * @return self
+     */
+    public function deleteStripeProduct()
+    {        
+        $stripeProduct = $this->getStripeClientConnection()->products->update($this->product_id, [
+            'name'   => $this->name . ' (Deleted from PHP API) ',
+            'active' => false
+        ]);
+
+        $this->delete();
+
+        $this->setAsStripeProduct($stripeProduct);
+
+        return $this;
+    }
+
+    /**
+     * Active the stripe product
+     *
+     * Local query and Stripe Api connection
+     * 
+     * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+     */
+    public function activeStripeProduct()
+    {
+        return $this->updateStripeProduct(['active' => true]);
+    }
+
+    /**
+     * Disable the stripe product
+     *
+     * Local query and Stripe Api connection
+     *
+     * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+     */
+    public function disableStripeProduct($serviceIntegrationId)
+    {
+        return $this->updateStripeProduct(['active' => false]);
+    }    
 
 
     public function service_integration()
