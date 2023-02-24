@@ -18,6 +18,9 @@ class SubscriptionBuilder
     use InteractsWithPaymentBehavior;
     use Prorates;
 
+    // collection_method
+    // days_until_due
+
     /**
      * The model that is subscribing.
      *
@@ -305,10 +308,12 @@ class SubscriptionBuilder
         
         $subscription = $this->createSubscription($stripeSubscription);
 
-        $stripeSubscription->subscriptions->update($stripeSubscription->id, array_merge($stripeSubscription['metadata'], [
-            'stripe_subscription_id'   => $subscription->id,
-            'stripe_subscription_type' => config('stripe-multiple-accounts.relationship_models.subscriptions'),
-        ]));
+        $subscription->getStripeClientConnection()->subscriptions->update($stripeSubscription->id, [
+            'metadata' => array_merge($stripeSubscription->metadata->toArray(), [
+                'stripe_subscription_id'   => $subscription->id,
+                'stripe_subscription_type' => config('stripe-multiple-accounts.relationship_models.subscriptions'),
+            ])
+        ]);
 
         //$this->handlePaymentFailure($subscription, $paymentMethod);
 
@@ -327,14 +332,13 @@ class SubscriptionBuilder
         $isSinglePrice = $stripeSubscription->items->count() === 1;
 
         /** @var \BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription $subscription */
-        $subscription = $this->owner->service_integration_subscriptions()->create([
+        $subscription = $this->owner->stripe_subscriptions()->create([
             'identified_by'          => $this->subscriptionIdentifier,
             'name'                   => $this->name,
             'customer_id'            => $stripeSubscription->customer,
             'subscription_id'        => $stripeSubscription->id,
             'status'                 => $stripeSubscription->status,
             'trial_ends_at'          => ! $this->skipTrial ? $this->trialExpires : null,
-            'currency'               => $stripeSubscription->currency,
             'will_be_canceled'       => false,
             'billing_cycle_anchor'   => $stripeSubscription->current_period_start,
             'current_period_start'   => $stripeSubscription->current_period_start,
@@ -346,12 +350,12 @@ class SubscriptionBuilder
         
         /** @var \Stripe\SubscriptionItem $item */
         foreach ($stripeSubscription->items as $item) {
-            $subscription->service_integration_subscription_items()->updateOrCreate(
+            $subscription->stripe_subscription_items()->updateOrCreate(
                 ['item_id' => $item->id], // find by item id
                 [
-                    's_product_id'    => $item->metadata['service_integration_product_id'],  // \App\Models\Morphs\ServiceIntegrationProduct
-                    'quantity'        => $item->quantity ?? 1,
-                    'price_id'        => $item->price->id,
+                    'stripe_product_id' => $item->metadata['stripe_product_id'],  // \App\Models\Morphs\StripeProduct
+                    'quantity'          => $item->quantity ?? 1,
+                    'price_id'          => $item->price->id,
                 ]
             );
         }
@@ -426,8 +430,8 @@ class SubscriptionBuilder
                         'metadata' => [
                             'stripe_product_id'   => $item->id,
                             'stripe_product_type' => get_class($item),
-                            'owner_id'            => $item->owner_id,          
-                            'owner_type'          => $item->owner_type,
+                            'model_id'            => $item->model_id,          
+                            'model_type'          => $item->model_type,
                         ]
                     ];
 
