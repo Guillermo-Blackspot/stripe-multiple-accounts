@@ -308,13 +308,6 @@ class SubscriptionBuilder
         
         $subscription = $this->createSubscription($stripeSubscription);
 
-        $subscription->getStripeClientConnection()->subscriptions->update($stripeSubscription->id, [
-            'metadata' => array_merge($stripeSubscription->metadata->toArray(), [
-                'stripe_subscription_id'   => $subscription->id,
-                'stripe_subscription_type' => config('stripe-multiple-accounts.relationship_models.subscriptions'),
-            ])
-        ]);
-
         //$this->handlePaymentFailure($subscription, $paymentMethod);
 
         return $subscription;
@@ -428,10 +421,12 @@ class SubscriptionBuilder
                     $payload = [
                         'price' => $item['default_price_id'],
                         'metadata' => [
-                            'stripe_product_id'   => $item->id,
-                            'stripe_product_type' => get_class($item),
-                            'model_id'            => $item->model_id,          
-                            'model_type'          => $item->model_type,
+                            'stripe_product_id'        => $item->id,
+                            'stripe_product_type'      => get_class($item),                            
+                            'model_id'                 => $item->model_id,          
+                            'model_type'               => $item->model_type,
+                            'service_integration_id'   => $this->serviceIntegrationId,
+                            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
                         ]
                     ];
 
