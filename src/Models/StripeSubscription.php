@@ -298,10 +298,9 @@ class StripeSubscription extends Model
         }
 
         $this->fill([
-            'will_be_canceled'     => true,
-            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'current_period_ends_at'              => $endsAt,
-            'status'               => $stripeSubscription->status,
+            'current_period_start'   => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
+            'current_period_ends_at' => $endsAt,
+            'status'                 => $stripeSubscription->status,
         ])->save();
 
         return $this;
@@ -327,10 +326,9 @@ class StripeSubscription extends Model
         $this->setAsStripeSubscription($stripeSubscription);
 
         $this->fill([            
-            'will_be_canceled'     => true,
-            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'status'               => $stripeSubscription->status,    
-            'current_period_ends_at'              => $endsAt,
+            'current_period_start'   => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
+            'status'                 => $stripeSubscription->status,    
+            'current_period_ends_at' => $endsAt,
         ])->save();
 
         return $this;
@@ -349,7 +347,7 @@ class StripeSubscription extends Model
 
         $this->setAsStripeSubscription($stripeSubscription);
 
-        $this->markAsCanceledWithStripeStatus();
+        $this->markAsCanceled();
 
         return $this;
     }
@@ -368,7 +366,7 @@ class StripeSubscription extends Model
 
         $this->setAsStripeSubscription($stripeSubscription);
         
-        $this->markAsCanceledWithStripeStatus();
+        $this->markAsCanceled();
         
         return $this;
     }
@@ -388,17 +386,16 @@ class StripeSubscription extends Model
 
         $stripeSubscription = $this->updateStripeSubscription([
             'cancel_at_period_end' => false,
-            'trial_end' => $this->stripeOnTrial() ? $this->trial_ends_at->getTimestamp() : 'now',
+            'trial_end'            => $this->stripeOnTrial() ? $this->trial_ends_at->getTimestamp() : 'now',
         ]);
 
         // Finally, we will remove the ending timestamp from the user's record in the
         // local database to indicate that the subscription is active again and is
         // no longer "canceled". Then we shall save this record in the database.
         $this->fill([
-            'will_be_cancelated'   => false,
-            'status'               => $stripeSubscription->status,
-            'current_period_start' => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
-            'current_period_ends_at'              => Carbon::createFromTimestamp($stripeSubscription->current_period_end),
+            'status'                 => $stripeSubscription->status,
+            'current_period_start'   => Carbon::createFromTimestamp($stripeSubscription->current_period_start),
+            'current_period_ends_at' => Carbon::createFromTimestamp($stripeSubscription->current_period_end),
         ])->save();
 
         return $this;
@@ -414,9 +411,8 @@ class StripeSubscription extends Model
     public function markAsCanceled()
     {
         $this->fill([
-            'will_be_canceled' => false,
-            'status'           => self::STRIPE_STATUS_CANCELED,
-            'current_period_ends_at'          => Carbon::now(),
+            'status'                 => self::STRIPE_STATUS_CANCELED,
+            'current_period_ends_at' => Carbon::now(),
         ])->save();
     }
    
@@ -426,7 +422,7 @@ class StripeSubscription extends Model
      * @param  array  $options
      * @return \Stripe\Subscription
      */
-    public function stripeUpdateSubscription(array $options = [])
+    public function updateStripeSubscription(array $options = [])
     {
         $stripeSubscription = $this->getStripeClientConnection()->subscriptions->update(
             $this->subscription_id, $options
@@ -443,7 +439,7 @@ class StripeSubscription extends Model
      */
     public function asStripeSubscription(array $expand = [])
     {
-        if ($this->recentlyStripeSubscrtionFetched instanceOf StripeSubscription) {
+        if ($this->recentlyStripeSubscrtionFetched instanceOf \Stripe\Subscription) {
             return $this->recentlyStripeSubscrtionFetched;
         }
 
