@@ -5,6 +5,7 @@ namespace BlackSpot\StripeMultipleAccounts;
 use BlackSpot\StripeMultipleAccounts\Concerns\InteractsWithPaymentBehavior;
 use BlackSpot\StripeMultipleAccounts\Concerns\Prorates;
 use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationProduct;
+use BlackSpot\StripeMultipleAccounts\Concerns\HandlesPaymentFailures;
 use Carbon\Carbon;
 use Closure;
 use DateTimeInterface;
@@ -17,6 +18,7 @@ class SubscriptionBuilder
 {
     use InteractsWithPaymentBehavior;
     use Prorates;
+    use HandlesPaymentFailures;
 
     // collection_method
     // days_until_due
@@ -308,7 +310,7 @@ class SubscriptionBuilder
         
         $subscription = $this->createSubscription($stripeSubscription);
 
-        //$this->handlePaymentFailure($subscription, $paymentMethod);
+        $this->handlePaymentFailure($subscription, $paymentMethodId, $this->serviceIntegrationId);
 
         return $subscription;
     }

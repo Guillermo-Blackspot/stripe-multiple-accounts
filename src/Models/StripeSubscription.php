@@ -261,6 +261,19 @@ class StripeSubscription extends Model
         return $this->pastDue() || $this->incomplete();
     }        
     
+    /**
+     * Get the latest payment for a Subscription.
+     *
+     * @return \Stripe\PaymentIntent
+     */
+    public function latestPaymentIntent()
+    {
+        $subscription = $this->asStripeSubscription(['latest_invoice.payment_intent']);
+
+        if ($invoice = $subscription->latest_invoice) {
+            return $invoice->payment_intent;
+        }
+    }
 
     /**
      * Determine if the subscription is within its grace period
