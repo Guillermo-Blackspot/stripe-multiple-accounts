@@ -32,6 +32,8 @@ trait ManagesCustomer
      */    
     protected $stripeCustomerIdRecentlyFetched = null;
 
+    public abstract getStripeCustomerInformation() : array;
+
     /**
      * Determine if the user exists as customer in the service integration
      * 
@@ -81,7 +83,7 @@ trait ManagesCustomer
 
         $stripeCustomer = $stripeClientConnection->customers->retrieve($stripeCustomerId, null, $opts);
 
-        $this->setStripeCustomerToCache($stripeCustomer);
+        $this->setAsStripeCustomer($stripeCustomer);
 
         return $stripeCustomer;
     }
@@ -159,7 +161,7 @@ trait ManagesCustomer
             return null;
         }
 
-        $this->setStripeCustomerToCache($stripeCustomer);
+        $this->setAsStripeCustomer($stripeCustomer);
 
         return $stripeCustomer;
     }
@@ -183,41 +185,33 @@ trait ManagesCustomer
             return ;
         } 
 
-        if ($opts instanceof self) {
-            $address = $opts->main_address;
-
-            $data = [
-                'name'     => $opts->full_name,
-                'metadata' => [
-                    'user_id' => $opts->id,
-                ]
-            ];
-
-            if ($address != null) {
-                $data['address'] = [
-                    'city'        => $address->city,
-                    'country'     => 'MX',
-                    'line1'       => $address->address,
-                    'postal_code' => $address->postal_code,
-                    'state'       => optional($address->state)->name,
-                ];
-            }
-
-            if (isset($opts->email)) {
-                $data['email'] = $opts->email;
-            }
-            if (isset($opts->cellphone)) {
-                $data['phone'] = $opts->cellphone;
-            }
-
-            $opts = $data;
-        }
-        
-        $stripeCustomer     = $stripeClientConnection->customers->create($opts);
         $serviceIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
 
+        if (is_object($opts)) {
+            if (get_class($opts) == config('stripe-multiple-accounts.relationship_models.local_users')) {
+                $opts = (array) $opts->getStripeCustomerInformation();
+            }
+        }else if (empty($opts)) {
+            $opts = (array) $this->getStripeCustomerInformation();
+        }else{
+            $opts = [];
+        }
+
+        $defaultMetadata = [                
+            'service_integration_id'   => $serviceIntegrationId,
+            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
+        ];
+        
+        if (isset($opts['metadata'])) {
+            $opts['metadata'] = array_merge($opts['metadata'], $defaultMetadata);
+        }else{
+            $opts['metadata'] = $defaultMetadata;
+        }
+
+        $stripeCustomer = $stripeClientConnection->customers->create($opts);        
+
         // Updating cache
-        $this->setStripeCustomerToCache($stripeCustomer);
+        $this->setAsStripeCustomer($stripeCustomer);
 
         // Creating or replacing the existing record the relationships in the local database
         $this->stripe_users()->updateOrCreate([
@@ -254,7 +248,7 @@ trait ManagesCustomer
             $stripeCustomerId, $opts
         );
 
-        $this->setStripeCustomerToCache($stripeCustomer);
+        $this->setAsStripeCustomer($stripeCustomer);
 
         return $stripeCustomer;
     }
@@ -266,7 +260,7 @@ trait ManagesCustomer
      * @param \Stripe\Customer
      * @return void
      */
-    public function setStripeCustomerToCache(Customer $stripeCustomer)
+    public function setAsStripeCustomer(Customer $stripeCustomer)
     {
         if ($stripeCustomer->id === null) {
             return ;
