@@ -32,8 +32,6 @@ trait ManagesCustomer
      */    
     protected $stripeCustomerIdRecentlyFetched = null;
 
-    public abstract getStripeCustomerInformation() : array;
-
     /**
      * Determine if the user exists as customer in the service integration
      * 
@@ -188,10 +186,10 @@ trait ManagesCustomer
         $serviceIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
 
         if (is_object($opts)) {
-            if (get_class($opts) == config('stripe-multiple-accounts.relationship_models.local_users')) {
+            if (get_class($opts) == config('stripe-multiple-accounts.relationship_models.local_users') && method_exists($opts, 'getStripeCustomerInformation')) {
                 $opts = (array) $opts->getStripeCustomerInformation();
             }
-        }else if (empty($opts)) {
+        }else if (empty($opts) && method_exists($this, 'getStripeCustomerInformation')) {
             $opts = (array) $this->getStripeCustomerInformation();
         }else{
             $opts = [];

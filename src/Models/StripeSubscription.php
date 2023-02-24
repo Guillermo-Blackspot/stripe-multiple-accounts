@@ -177,7 +177,12 @@ class StripeSubscription extends Model
      */
     public function incomplete()
     {
-        return $this->status === self::STRIPE_STATUS_INCOMPLETE;
+        return $this->status === \Stripe\Subscription::STATUS_INCOMPLETE;
+    }
+
+    public function incompleteExpired()
+    {
+        return $this->status === \Stripe\Subscription::STATUS_INCOMPLETE_EXPIRED;
     }
 
     /**
@@ -187,7 +192,7 @@ class StripeSubscription extends Model
      */
     public function pastDue()
     {
-        return $this->status === self::STRIPE_STATUS_PAST_DUE;
+        return $this->status === \Stripe\Subscription::STATUS_PAST_DUE;
     }
 
     /**
@@ -197,7 +202,7 @@ class StripeSubscription extends Model
      */
     public function canceled()
     {
-        return $this->status == self::STRIPE_STATUS_CANCELED;
+        return $this->status == \Stripe\Subscription::STATUS_CANCELED;
     }
 
     /**
@@ -208,10 +213,10 @@ class StripeSubscription extends Model
     public function active()
     {
         return !$this->ended() &&
-            $this->status !== self::STRIPE_STATUS_INCOMPLETE &&
-            $this->status !== self::STRIPE_STATUS_INCOMPLETE_EXPIRED &&
-            $this->status !== self::STRIPE_STATUS_PAST_DUE &&
-            $this->status !== self::STRIPE_STATUS_UNPAID;
+            $this->status !== \Stripe\Subscription::STATUS_INCOMPLETE &&
+            $this->status !== \Stripe\Subscription::STATUS_INCOMPLETE_EXPIRED &&
+            $this->status !== \Stripe\Subscription::STATUS_PAST_DUE &&
+            $this->status !== \Stripe\Subscription::STATUS_UNPAID;
     }
 
     /**
@@ -411,7 +416,7 @@ class StripeSubscription extends Model
     public function markAsCanceled()
     {
         $this->fill([
-            'status'                 => self::STRIPE_STATUS_CANCELED,
+            'status'                 => \Stripe\Subscription::STATUS_CANCELED,
             'current_period_ends_at' => Carbon::now(),
         ])->save();
     }
