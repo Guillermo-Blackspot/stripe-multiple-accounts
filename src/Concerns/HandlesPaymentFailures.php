@@ -44,7 +44,7 @@ trait HandlesPaymentFailures
                                     ? $e->payment->confirm(['expand' => ['invoice.subscription'],'payment_method' => $paymentMethodId])
                                     : $e->payment->confirm(['expand' => ['invoice.subscription']]);
 
-            } catch (StripeCardException) {
+            } catch (StripeCardException $cardException) {
                 $paymentIntent = $e->payment->asStripePaymentIntent(['invoice.subscription']);
             }
 

@@ -310,7 +310,7 @@ class SubscriptionBuilder
         
         $subscription = $this->createSubscription($stripeSubscription);
 
-        $this->handlePaymentFailure($subscription, $paymentMethodId, $this->serviceIntegrationId);
+        $this->handlePaymentFailure($this->serviceIntegrationId, $subscription, $paymentMethodId);
 
         return $subscription;
     }
