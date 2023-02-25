@@ -209,12 +209,10 @@ class ProductBuilder
         $product = $this->model->stripe_products()->create([
             'name'                   => $this->name,
             'current_price'          => $this->getCurrentPriceForPayload(),
-            'payment_type'           => $this->allowsRecurringForPayload() ? 'sub' : 'sch',
             'allows_recurring'       => $this->allowsRecurringForPayload(),
             'service_integration_id' => $this->serviceIntegrationId,
             'active'                 => $this->active,
             'unit_label'             => $this->unitLabel,
-            'subscription_settings'  => $this->allowsRecurringForPayload() ? $this->model->subscription_settings : [],
             'metadata'               => $metadata,
         ]);    
 
