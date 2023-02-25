@@ -213,7 +213,7 @@ class ProductBuilder
             'service_integration_id' => $this->serviceIntegrationId,
             'active'                 => $this->active,
             'unit_label'             => $this->unitLabel,
-            'metadata'               => $metadata,
+            'metadata'               => [],
         ]);    
 
         // Creating the product in stripe
