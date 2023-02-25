@@ -5,12 +5,16 @@ namespace BlackSpot\StripeMultipleAccounts\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
+use BlackSpot\StripeMultipleAccounts\SubscriptionSettingsAccesorsAndMutators;
 
 class StripeProduct extends Model
 {
     use ManagesAuthCredentials;
+    use SubscriptionSettingsAccesorsAndMutators;
 
     protected ?\Stripe\Product $recentlyStripeProductFetched = null;
+
+    public const PAYMENT_TYPE_SUBSCRIPTION = 'sub';
     
     /** 
      * The table associated with the model.
@@ -36,7 +40,7 @@ class StripeProduct extends Model
      *
      * @var bool
      */
-    public $timestamps = true;
+    public $timestamps = true;    
 
     /**
      * Overwrite cast json method
