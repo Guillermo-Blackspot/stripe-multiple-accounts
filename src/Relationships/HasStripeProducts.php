@@ -3,9 +3,12 @@
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
 use BlackSpot\StripeMultipleAccounts\ProductBuilder;
+use BlackSpot\StripeMultipleAccounts\SubscriptionSettingsAccesorsAndMutators;
 
 trait HasStripeProducts
 {
+  use SubscriptionSettingsAccesorsAndMutators;
+
   /**
    * Boot on delete method
    */
@@ -114,6 +117,19 @@ trait HasStripeProducts
   public function disableStripeProduct($serviceIntegrationId)
   {
     return $this->updateStripeProduct($serviceIntegrationId, ['active' => false]);
+  }
+
+  /**
+   * Disable the stripe product
+   *
+   * Local query
+   * 
+   * @param int $serviceIntegrationId
+   * @return int
+   */
+  public function countStripeProductSubscriptionsByItems($serviceIntegrationId)
+  {
+    return $this->findStripeProduct($serviceIntegrationId)->stripe_subscription_items()->distinct('stripe_subscription_id')->count();
   }
 
   /**
