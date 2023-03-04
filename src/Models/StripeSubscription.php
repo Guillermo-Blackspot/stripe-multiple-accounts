@@ -230,18 +230,6 @@ class StripeSubscription extends Model
     }
 
     /**
-     * Determine if the subscription will be cancelated 
-     * 
-     * on a custom_date or on trial_period_ends
-     *
-     * @return boolean
-     */
-    public function willBeCancelated()
-    {
-        return $this->will_be_canceled;
-    }
-
-    /**
      * Determine if the subscription is active, on trial, or within its grace period.
      *
      * @return bool

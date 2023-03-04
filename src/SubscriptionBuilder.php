@@ -107,6 +107,13 @@ class SubscriptionBuilder
     protected $skipTrial = false;
 
     /**
+     * The date when the subscription will be canceled
+     * 
+     * @var \Carbon\Carbon|\Carbon\CarbonInterface|null
+     */
+    protected $cancelAt = null;
+
+    /**
      * Callback to be called before to send the subscriptio to stripe
      *
      * @var \Closure
@@ -230,6 +237,25 @@ class SubscriptionBuilder
     }
 
     /**
+     * Set the date when the subscription should cancel
+     *
+     * can be used for define the billing cycles
+     * 
+     * @param  \DateTimeInterface|int  $date
+     * @return $this
+     */
+    public function cancelAt($date)
+    {
+        if ($date instanceof DateTimeInterface) {
+            $date = $date->getTimestamp();
+        }
+
+        $this->cancelAt = $date;
+
+        return $this;
+    }
+
+    /**
      * Specify the number of days of the trial.
      *
      * @param  int  $trialDays
@@ -279,7 +305,7 @@ class SubscriptionBuilder
      * @param  array  $subscriptionOptions
      * @return \Blackspot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription|null
      *
-     * @throws \Exception
+     * @throws \Blackspot\StripeMultipleAccounts\Exceptions\IncompleteStripePayment
      */
     public function add(array $customerOptions = [], array $subscriptionOptions = [])
     {
@@ -294,7 +320,7 @@ class SubscriptionBuilder
      * @param  array  $subscriptionOptions
      * @return \Blackspot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription|null
      *
-     * @throws \Exception
+     * @throws \Blackspot\StripeMultipleAccounts\Exceptions\IncompleteStripePayment
      */
     public function create($paymentMethodId = null, array $customerOptions = [], array $subscriptionOptions = [])
     {
@@ -334,7 +360,6 @@ class SubscriptionBuilder
             'subscription_id'        => $stripeSubscription->id,
             'status'                 => $stripeSubscription->status,
             'trial_ends_at'          => ! $this->skipTrial ? $this->trialExpires : null,
-            'will_be_canceled'       => false,
             'billing_cycle_anchor'   => $stripeSubscription->current_period_start,
             'current_period_start'   => $stripeSubscription->current_period_start,
             'current_period_ends_at' => $stripeSubscription->current_period_end,            
@@ -391,6 +416,7 @@ class SubscriptionBuilder
             'metadata'             => $this->getMetadataForPayload(),
             'items'                => $this->getItemsForPayload(),
             'trial_end'            => $this->getTrialEndForPayload(),
+            'cancel_at'            => $this->getCancelAtForPayload(),
             'off_session'          => true,
             //'automatic_tax'       => $this->automaticTaxPayload(),
             //'coupon'              => $this->couponId,
@@ -445,6 +471,20 @@ class SubscriptionBuilder
     }
 
     /**
+     * Get the date when the subscription must be canceled
+     *
+     * @return int|string|null
+     */
+    protected function getCancelAtForPayload()
+    {
+        if ($this->cancelAt instanceof DateTimeInterface) {
+            return $this->cancelAt->getTimestamp();
+        }
+
+        return $this->cancelAt;
+    }
+
+    /**
      * Get the trial ending date for the Stripe payload.
      *
      * @return int|string|null
@@ -455,9 +495,11 @@ class SubscriptionBuilder
             return 'now';
         }
 
-        if ($this->trialExpires) {
+        if ($this->trialExpires instanceof DateTimeInterface) {
             return $this->trialExpires->getTimestamp();
         }
+
+        return $this->trialExpires;
     }    
 
     /**

@@ -24,7 +24,7 @@ trait HasStripeSubscriptions
    *
    * @return bool
    */
-  public function isSubscribedTo($identifier)
+  public function isSubscribedWithStripeTo($identifier)
   {
     return $this->stripe_subscriptions()->where('identified_by', $identifier)->exists();
   }
