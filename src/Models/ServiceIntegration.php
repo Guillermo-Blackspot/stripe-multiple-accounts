@@ -102,4 +102,8 @@ class ServiceIntegration extends Model
                     ->where('short_name', self::STRIPE_SERVICE_SHORT_NAME);
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('active', true);
+    }
 }
