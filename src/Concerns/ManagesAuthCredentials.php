@@ -45,7 +45,7 @@ trait ManagesAuthCredentials
      * @param int|null $serviceIntegrationId
      * @return ServiceIntegration
      * 
-     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
+     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration|LogicException
      */
     public function getStripeServiceIntegration($serviceIntegrationId = null)
     {
@@ -53,14 +53,7 @@ trait ManagesAuthCredentials
             return $this->getServiceIntegrationLoaded($serviceIntegrationId);
         }
 
-        $stripeIntegration = null;
-
-        // Is the ServiceIntegration Model
-        if (isset($this->id) && self::class == ServiceIntegrationsContainerProvider::getFromConfig('model', ServiceIntegration::class)) {
-            if (! is_null($serviceIntegrationId) && $this->id == $serviceIntegrationId) {                
-                $stripeIntegration = $this;
-            }
-        }
+        $stripeIntegration = $this->resolveServiceIntegrationFromInstance($this, $serviceIntegrationId);
         
         // Try to resolve
         if (is_null($stripeIntegration)){
