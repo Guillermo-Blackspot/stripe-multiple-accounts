@@ -106,14 +106,6 @@ class StripeSubscription extends Model
         return static::resolveStripeStatusDescription($this->status);
     }
 
-    protected function getProviderFunctionAccesor()
-    {
-        if ($this->service_integration->name == ServiceIntegration::STRIPE_SERVICE && $this->service_integration->short_name == ServiceIntegration::STRIPE_SERVICE_SHORT_NAME) {            
-            return 'stripe';
-        }
-        throw new \Exception("Unknown Provider", 1);
-    }
-
     /**
      * Determine if the subscription is within its trial period.
      *

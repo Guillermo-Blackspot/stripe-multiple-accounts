@@ -24,6 +24,7 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=7.3",
-        "stripe/stripe-php": "^9.8"
+        "stripe/stripe-php": "^9.8",
+        "blackspot/service-integrations-container": "dev-master"
     }
 }

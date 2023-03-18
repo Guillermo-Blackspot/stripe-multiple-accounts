@@ -2,34 +2,97 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
+use BlackSpot\ServiceIntegrationsContainer\Concerns\ServiceIntegrationFinder;
+use BlackSpot\ServiceIntegrationsContainer\Models\ServiceIntegration;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use Illuminate\Support\Facades\DB;
 use Stripe\Collection;
 use Stripe\StripeClient;
-
 /**
  * Manages the auth credentials to connect with stripe
  * 
- * @method getStripeClientConnection($serviceIntegrationId = null)
  * @method getStripeServiceIntegrationQuery($serviceIntegrationId = null)
  * @method getStripeServiceIntegration($serviceIntegrationId = null)
  * @method assertStripeServiceIntegrationExists($serviceIntegrationId = null)
- * @method getRelatedStripeSecretKey($serviceIntegrationId = null)
- * @method getRelatedStripePublicKey($serviceIntegrationId = null)
+ * @method getStripeClientConnection($serviceIntegrationId = null)
+ * @method getStripeSecretKey($serviceIntegrationId = null)
+ * @method getStripePublicKey($serviceIntegrationId = null)
  */
 trait ManagesAuthCredentials
 {
-    private $stripeServiceIntegrationRecentlyFetched = null;
-    
+    use ServiceIntegrationFinder;
+
+    /**
+     * Get the stripe service integration query
+     * 
+     * @param int|null $serviceIntegrationId
+     * 
+     * @return \Illuminate\Database\Query\Builder
+     */
+    protected function getStripeServiceIntegrationQuery($serviceIntegrationId = null)
+    {
+        return $this->getServiceIntegrationQueryFinder($serviceIntegrationId, 'stripe')
+                    ->where('name', ServiceIntegration::STRIPE_SERVICE)
+                    ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
+    }
+
+    /**
+     * Get the related stripe account where the user belongs to
+     * 
+     * Scoping by \App\Models\Subsidiary\Subsidiary
+     * 
+     * @param int|null $serviceIntegrationId
+     * @return ServiceIntegration
+     * 
+     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
+     */
+    public function getStripeServiceIntegration($serviceIntegrationId = null)
+    {
+        if ($this->serviceIntegrationWasLoaded($serviceIntegrationId)) {
+            return $this->getServiceIntegrationLoaded($serviceIntegrationId);
+        }
+
+        $stripeIntegration = null;
+
+        // Is the ServiceIntegration Model
+        if (isset($this->id) && self::class == ServiceIntegrationsContainerProvider::getFromConfig('model', ServiceIntegration::class)) {
+            if (! is_null($serviceIntegrationId) && $this->id == $serviceIntegrationId) {                
+                $stripeIntegration = $this;
+            }
+        }
+        
+        // Try to resolve
+        if (is_null($stripeIntegration)){
+            $serviceIntegration = $this->getStripeServiceIntegrationQuery($serviceIntegrationId)->first();
+        }
+
+        if (is_null($stripeIntegration)) {
+            throw InvalidStripeServiceIntegration::notYetCreated($this);
+        }
+
+        $payloadColumn = ServiceIntegrationsContainerProvider::getFromConfig('payload_colum','payload');
+
+        if (! isset($stripeIntegration->{$payloadColumn})) {
+            throw InvalidStripeServiceIntegration::payloadColumnNotFound($this, $payloadColumn);
+        }
+
+        $service->{$payloadColumn.'_decoded'} = json_decode($service->{$payloadColumn}, true);
+
+        return $this->putServiceIntegrationFound($stripeIntegration);
+    }
+
     /**
      * Get the stripe client connection
      * 
      * @param int|null $serviceIntegrationId
      * @return \Stripe\StripeClient|null
+     * 
+     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
      */
     public function getStripeClientConnection($serviceIntegrationId = null)
     {
-        $stripeSecretKey = $this->getRelatedStripeSecretKey($serviceIntegrationId);
+        $stripeSecretKey = $this->getStripeSecretKey($serviceIntegrationId);
 
         if ($stripeSecretKey == null) {
             return ;
@@ -39,76 +102,45 @@ trait ManagesAuthCredentials
     }
 
     /**
-     * Get the stripe service integration query
+     * Get the related stripe secret key
      * 
-     * @param int|null $serviceIntegrationId
-     * 
-     * @return \Illuminate\Database\Query\Builder|null
+     * @param int|null 
+     * @return string
+     *
+     * @throws BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
      */
-    protected function getStripeServiceIntegrationQuery($serviceIntegrationId = null)
+    public function getStripeSecretKey($serviceIntegrationId = null)
     {
-        $serviceIntegrationModel     = config('stripe-multiple-accounts.relationship_models.stripe_accounts');
-        $serviceIntegrationTableName = $serviceIntegrationModel::TABLE_NAME;
-        $query                       = DB::table($serviceIntegrationTableName)
-                                        ->where('name', 'Stripe')
-                                        ->where('short_name', 'str');
+        $stripeIntegration  = $this->getStripeServiceIntegration($serviceIntegrationId);
+        $stripeSecretColumn = ServiceIntegrationsContainerProvider::getFromConfig('services.stripe.payload.stripe_secret');
+        $decoded            = $stripeIntegration->{$payloadColumn.'_decoded'};
 
-        if (!is_null($serviceIntegrationId)) {
-            $query = $query->where('id', $serviceIntegrationId);
-        }elseif (isset($this->id) && self::class == config('stripe-multiple-accounts.relationship_models.stripe_accounts')) {
-            $query = $query->where('id', $this->id);
-        }else if (isset($this->service_integration_id)){
-            $query = $query->where('id', $this->service_integration_id);
-        }else if (method_exists($this, 'getStripeServiceIntegrationId')){
-            $query = $query->where('id', $this->getStripeServiceIntegrationId());
-        }else if (method_exists($this, 'getStripeServiceIntegrationOwnerId') && method_exists($this,'getStripeServiceIntegrationOwnerType')){
-            $query = $query->where('owner_type', $this->getStripeServiceIntegrationOwnerType())->where('owner_id', $this->getStripeServiceIntegrationOwnerId());
-        }else{
-            $query = $query->where('owner_type', 'not-exists-expecting-null');
+        if (! isset($decoded[$stripeSecretColumn])) {
+            throw InvalidStripeServiceIntegration::payloadAttributeValueIsNull($this, $stripeSecretColumn);
         }        
-
-        return $query;
+        
+        return $decoded[$stripeSecretColumn];
     }
 
     /**
-     * Get the related stripe account where the user belongs to
+     * Get the related stripe key
      * 
-     * Scoping by \App\Models\Subsidiary\Subsidiary
+     * @param int|null
+     * @return string|null
      * 
-     * @param int|null $serviceIntegrationId
-     * 
-     * @return object|null
+     * @throws BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
      */
-    public function getStripeServiceIntegration($serviceIntegrationId = null)
+    public function getStripePublicKey($serviceIntegrationId = null)
     {
-        if ($this->stripeServiceIntegrationRecentlyFetched !== null) {
-            return $this->stripeServiceIntegrationRecentlyFetched;
-        }
-                
-        // ServiceIntegration.php (Model)
-        if (isset($this->id) && self::class == config('stripe-multiple-accounts.relationship_models.stripe_accounts')) {
-            $service = (object) $this->toArray();
-        }else{
-            $query = $this->getStripeServiceIntegrationQuery($serviceIntegrationId);
+        $stripeIntegration  = $this->getStripeServiceIntegration($serviceIntegrationId);
+        $stripePublicKeyColumn = ServiceIntegrationsContainerProvider::getFromConfig('services.stripe.payload.stripe_key');
+        $decoded            = $stripeIntegration->{$payloadColumn.'_decoded'};
 
-            if (is_null($query)) {
-                return ;
-            }
-            
-            $service = $query->first();
-        }
+        if (! isset($decoded[$stripePublicKeyColumn])) {
+            throw InvalidStripeServiceIntegration::payloadAttributeValueIsNull($this, $stripePublicKeyColumn);
+        }        
         
-        if (is_null($service)) {
-            return ;
-        }
-
-        $payloadColumn = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
-
-        if (isset($service->{$payloadColumn})) {
-            $service->{$payloadColumn.'_decoded'} = json_decode($service->{$payloadColumn}, true);
-        }
-
-        return $this->stripeServiceIntegrationRecentlyFetched = $service;
+        return $decoded[$stripePublicKeyColumn];    
     }
 
     /**
@@ -120,62 +152,13 @@ trait ManagesAuthCredentials
      */
     public function assertStripeServiceIntegrationExists($serviceIntegrationId = null)
     {
-        $query = $this->getStripeServiceIntegrationQuery($serviceIntegrationId);
-
-        if (is_null($query)) {
-            throw InvalidStripeServiceIntegration::notYetCreated($this);            
-        }        
-
-        $service = $query->first();
-        
-        if (is_null($service)) {
-            throw InvalidStripeServiceIntegration::notYetCreated($this);
-        }
+        $this->getStripeServiceIntegration($serviceIntegrationId);
     }
 
-    /**
-     * Get the related stripe secret key
-     * 
-     * @param int|null 
-     * @return string|null
-     */
-    public function getRelatedStripeSecretKey($serviceIntegrationId = null)
+    public function putStripeServiceIntegration($serviceIntegration)
     {
-        $payloadColumn     = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
-        $stripeSecret      = config('stripe-multiple-accounts.stripe_integrations.payload.stripe_secret', 'stripe_secret');
-        $stripeIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
+        $this->stripeServiceIntegrations[$serviceIntegration->id] = $serviceIntegration;
 
-        if (is_null($stripeIntegration)) {
-            return ;
-        }
-
-        if (!isset($stripeIntegration->{$payloadColumn})) {
-            return ;
-        }
-
-        return json_decode($stripeIntegration->{$payloadColumn}, true)[$stripeSecret];
-    }
-
-    /**
-     * Get the related stripe key
-     * 
-     * @param int|null
-     * @return string|null
-     */
-    public function getRelatedStripePublicKey($serviceIntegrationId = null)
-    {
-        $payloadColumn    = config('stripe-multiple-accounts.stripe_integrations.payload.column', 'payload');
-        $stripePublicKey  = config('stripe-multiple-accounts.stripe_integrations.payload.stripe_key', 'stripe_key');
-        $stripeIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
-
-        if (is_null($stripeIntegration)) {
-            return ;
-        }
-
-        if (!isset($stripeIntegration->{$payloadColumn})) {
-            return ;
-        }
-
-        return json_decode($stripeIntegration->{$payloadColumn}, true)[$stripePublicKey];
+        return $this;
     }
 }

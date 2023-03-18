@@ -16,29 +16,14 @@ trait ManagesPaymentMethodSources
      * @param string|null $tokenId
      * @param array $opts
      * @deprecated 
-     * @throws \Stripe\Exception\ApiErrorException
      * @return \Stripe\BankAccount|\Stripe\Card|\Stripe\Source|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
-    public function addStripePaymentMethodSource($serviceIntegrationId = null, $tokenId, $opts = [])
+    public function addStripePaymentMethodSource($serviceIntegrationId = null, $tokenId, array $opts = [])
     {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return null;
-        }
-
-        $opts['source'] = $tokenId;
-    
-        return $stripeClientConnection->customers->createSource($stripeCustomerId, $opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->addStripePaymentMethodSource($tokenId, $opts);
     }
-
-    
 
     /**
      * Detach payment method source from stripe customer payment methods
@@ -50,21 +35,11 @@ trait ManagesPaymentMethodSources
      * @param array $opts
      * @deprecated
      * @return \Stripe\PaymentMethod|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
-    public function deleteStripePaymentMethodSource($serviceIntegrationId = null, $sourceId, $opts = [])
+    public function deleteStripePaymentMethodSource($serviceIntegrationId = null, $sourceId, array $opts = [])
     {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return null;
-        }
-
-        return $stripeClientConnection->customers->deleteSource($stripeCustomerId, $sourceId, null, $opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->deleteStripePaymentMethodSource($sourceId, $opts);    
     }
 }

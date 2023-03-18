@@ -4,8 +4,53 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a2f224ce2c1c08fa644131654fff17aa",
+    "content-hash": "c7339804b769e9ed973e377124d30ef2",
     "packages": [
+        {
+            "name": "blackspot/service-integrations-container",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Guillermo-Blackspot/service-integrations-container.git",
+                "reference": "a024eae9b15767888e3183d1e2105775244dc206"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Guillermo-Blackspot/service-integrations-container/zipball/a024eae9b15767888e3183d1e2105775244dc206",
+                "reference": "a024eae9b15767888e3183d1e2105775244dc206",
+                "shasum": ""
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "BlackSpot\\ServiceIntegrationsContainer\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "BlackSpot\\ServiceIntegrationsContainer\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Guillermo-Rodriguez",
+                    "email": "guillermo.blackspot@gmail.com"
+                }
+            ],
+            "description": "The service integrations container base for stripe multiple accounts and system_charges",
+            "support": {
+                "issues": "https://github.com/Guillermo-Blackspot/service-integrations-container/issues",
+                "source": "https://github.com/Guillermo-Blackspot/service-integrations-container/tree/master"
+            },
+            "time": "2023-03-17T21:09:02+00:00"
+        },
         {
             "name": "stripe/stripe-php",
             "version": "v9.9.0",
@@ -71,7 +116,9 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": [],
+    "stability-flags": {
+        "blackspot/service-integrations-container": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

@@ -77,7 +77,7 @@ class ServiceIntegration extends Model
         return $this->morphTo('owner');
     }
 
-    public function stripe_users()
+    public function stripe_customers()
     {
         return $this->hasMany(config('stripe-multiple-accounts.relationship_models.customers'), 'service_integration_id');
     }

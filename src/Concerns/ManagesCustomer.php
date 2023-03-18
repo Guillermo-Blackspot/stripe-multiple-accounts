@@ -2,6 +2,11 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
+use BlackSpot\ServiceIntegrationsContainer\Models\ServiceIntegration;
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeCustomer;
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
+use BlackSpot\StripeMultipleAccounts\Relationships\HasStripeUsers;
 use Illuminate\Support\Facades\DB;
 use Stripe\Customer;
 use Stripe\StripeClient;
@@ -12,6 +17,8 @@ use Stripe\StripeClient;
  * @property $stripeCustomerRecentlyFetched \Stripe\Customer|null
  * @property $stripeCustomerIdRecentlyFetched \Stripe\Customer|null
  * 
+ * @method stripeCustomerExists($serviceIntegrationId = null): bool
+ * 
  * @method relateCustomerWithStripeAccount($serviceIntegrationId = null, $opts = []): \Stripe\Customer|null
  * @method getRelatedStripeCustomer($serviceIntegrationId = null, $opts = []): \Stripe\Customer|null
  * @method getRelatedStripeCustomerId($serviceIntegrationId = null): null|string
@@ -20,202 +27,181 @@ use Stripe\StripeClient;
  */
 trait ManagesCustomer
 {
-    /**
-     * The customer instance recently fetched or created from stripe
-     * @var \Stripe\Customer
-     */
-    protected $stripeCustomerRecentlyFetched = null;
+    use HasStripeUsers;
 
     /**
-     * The customer id recently fetched or created from stripe
-     * @var \Stripe\Customer
-     */    
-    protected $stripeCustomerIdRecentlyFetched = null;
-
-    /**
-     * Determine if the user exists as customer in the service integration
+     * The stripe customer recently fetched or created
+     *
+     * LocalDatabase
      * 
-     * Fetch to local database
+     * @var \BlackSpot\StripeMultipleAccounts\Models\StripeCustomer|null
+     */
+    protected $localDatabaseStripeCustomerRecentlyFetched = [];
+
+    /**
+     * Determine if the user exists as stripe customer in the service integration
+     * 
+     * LocalDatabase
+     * Uses the property cache
      * 
      * @param int|null $serviceIntegrationId
-     * @return boolean
+     * @return bool
      */
     public function stripeCustomerExists($serviceIntegrationId = null)
     {
-        $serviceIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
-
-        if ($serviceIntegration == null) {
+        try {
+            $this->asLocalStripeCustomer($serviceIntegrationId)
+            return true;
+        } catch (InvalidStripeServiceIntegration $err) {
+            return false;
+        } catch (InvalidStripeCustomer $err) {
             return false;
         }
-
-        return $this->stripe_users()->where('service_integration_id', $serviceIntegration->id)->exists();
     }
 
     /**
      * Get the related customer to stripe
      * 
-     * Fetch to stripe
-     * Store result in to cache
+     * Connect to local database and Fetch to stripe
+     *
+     * Store result in to memo
      * 
      * @param int|null $serviceIntegrationId
-     * @param array|null $opts
+     * @param array $expand
      * @return \Stripe\Customer|null
+     * 
+     * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
-    public function getStripeCustomer($serviceIntegrationId = null, $opts = [])
-    {   
-        if ($this->stripeCustomerRecentlyFetched instanceof Customer) {
-            return $this->stripeCustomerRecentlyFetched;
-        }
-
-        $stripeClientConnection = $this->getStripeClientConnection();
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-
-        $stripeCustomer = $stripeClientConnection->customers->retrieve($stripeCustomerId, null, $opts);
-
-        $this->setAsStripeCustomer($stripeCustomer);
-
-        return $stripeCustomer;
+    public function getStripeCustomer($serviceIntegrationId = null, array $expand = [])
+    {            
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->asStripe($expand);
     }
         
     /**
      * Get the stripe customer id (cus_..)
      * 
-     * Fetch to local database
-     * Store result in to cache
+     * Connect to local database
+     * Store result in to memo
      * 
      * @param int|null $serviceIntegrationId
      * @return string|null
+     * 
+     * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function getStripeCustomerId($serviceIntegrationId = null)
     {
-        if ($this->stripeCustomerIdRecentlyFetched !== null) {
-            return $this->stripeCustomerIdRecentlyFetched;
-        }
-
-        if (is_null($serviceIntegrationId)) {
-            $serviceIntegrationId = optional($this->getStripeServiceIntegration($serviceIntegrationId))->id;
-        }
-
-        if ($serviceIntegrationId == null) {
-            return null;
-        }
-        
-        $stripeCustomerId = $this->stripe_users()->where('service_integration_id', $serviceIntegrationId)->value('customer_id');
-
-        $this->setStripeCustomerIdToCache($stripeCustomerId);
-
-        return $stripeCustomerId;
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->customer_id;
     }
 
 
     /**
-     * Create if not exists the stripe customer
+     * Sync to the stripe and create the customer if not exists
      * 
-     * returns the \Stripe\Customer if was created or
-     * returns null if exists
+     * Connect to local database
+     * Connect to stripe if not exists
+     * 
+     * returns null if exists 
+     * returns \Stripe\Customer if was created
+     * Store the result in to memo
      * 
      * @param int|null  $serviceIntegrationId
+     * @param array  $opts
      * 
-     * @return \Stripe\Customer|null
+     * @return \Stripe\Customer|null  
+     * 
+     * @throws InvalidStripeServiceIntegration
      */
-    public function createStripeCustomerIfNotExists($serviceIntegrationId = null, $opts = [])
+    public function createStripeCustomerIfNotExists($serviceIntegrationId = null, array $opts = [])
     {
-        if ($this->stripeCustomerExists($serviceIntegrationId)) {
-            return null; // Exists
+        $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegration)
+
+        // Exists
+        if (! is_null($localStripeCustomer)) {
+            return null;
         }
 
+        // Was Created
         return $this->createStripeCustomer($serviceIntegrationId, $opts);
     }
 
     /**
      * Create or get the related stripe customer instance
      * 
-     * Send or fetch to stripe
-     * Store result in to cache
+     * Connect to local database
+     * Connect to stripe
+     * Store result in to memo
      * 
      * @param int|null $serviceIntegrationId
      * @return \Stripe\Customer|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
-    public function createOrGetStripeCustomer($serviceIntegrationId = null, $opts = [])
+    public function createOrGetStripeCustomer($serviceIntegrationId = null, array $opts = [])
     {
-        if ($this->stripeCustomerRecentlyFetched instanceof Customer) {
-            return $this->stripeCustomerRecentlyFetched;
-        }    
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-        $stripeCustomer   = is_null($stripeCustomerId)
-                                ? $this->createStripeCustomer($serviceIntegrationId, $opts)
-                                : $this->getStripeCustomer($serviceIntegrationId, $opts);
+        $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
 
-        if (is_null($stripeCustomer)) {
-            return null;
+        if (! is_null($localStripeCustomer)) {
+            return $localStripeCustomer->asStripe();
         }
 
-        $this->setAsStripeCustomer($stripeCustomer);
-
-        return $stripeCustomer;
+        return $this->createStripeCustomer($serviceIntegrationId, $opts);
     }
     
     /**
      * Create a stripe customer with the current user data
      * 
-     * Send to stripe
-     * Store result in to cache
-     * This function uses the updateOrCreate sentence in the local database
+     * Connect to stripe
+     * Connect to local database
+     * Store result in to memo
      * 
      * @param int|null $serviceIntegrationId
      * @param array $opts
      * @return \Stripe\Customer|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
-    public function createStripeCustomer($serviceIntegrationId = null, $opts = [])
-    { 
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
+    public function createStripeCustomer($serviceIntegrationId = null, array $opts = [])
+    {         
+        // check if exists 
+        $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
 
-        if (is_null($stripeClientConnection)) {
-            return ;
-        } 
+        if (! is_null($localStripeCustomer)) {
+            return $localStripeCustomer->asStripe();
+        }
 
-        $serviceIntegration = $this->getStripeServiceIntegration($serviceIntegrationId);
+        // if not exists create it
 
-        if (is_object($opts)) {
-            if (get_class($opts) == config('stripe-multiple-accounts.relationship_models.local_users') && method_exists($opts, 'getStripeCustomerInformation')) {
-                $opts = (array) $opts->getStripeCustomerInformation();
+        $serviceIntegration   = $this->getStripeServiceIntegration($serviceIntegrationId);
+        $serviceIntegrationId = $serviceIntegration->id;
+        $stripe               = $this->getStripeClientConnection($serviceIntegrationId);
+    
+        if (empty($opts)) {
+            if (method_exists($this, 'getStripeCustomerInformation')) {
+                $opts = (array) $this->getStripeCustomerInformation();
             }
-        }else if (empty($opts) && method_exists($this, 'getStripeCustomerInformation')) {
-            $opts = (array) $this->getStripeCustomerInformation();
-        }else{
-            $opts = [];
         }
 
-        $defaultMetadata = [                
+        if (! isset($opts)) {
+            $opts['metadata'] = [];
+        }
+            
+        $opts['metadata'] = array_merge($opts['metadata'], [                
             'service_integration_id'   => $serviceIntegrationId,
-            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
-        ];
-        
-        if (isset($opts['metadata'])) {
-            $opts['metadata'] = array_merge($opts['metadata'], $defaultMetadata);
-        }else{
-            $opts['metadata'] = $defaultMetadata;
-        }
+            'service_integration_type' => ServiceIntegrationsContainerProvider::getFromConfig('model', ServiceIntegration::class),
+        ]);
 
-        $stripeCustomer = $stripeClientConnection->customers->create($opts);        
+        // Connect to stripe
+        $stripeCustomer = $stripe->customers->create($opts);
 
-        // Updating cache
-        $this->setAsStripeCustomer($stripeCustomer);
-
-        // Creating or replacing the existing record the relationships in the local database
-        $this->stripe_users()->updateOrCreate([
+        // Connect to local database
+        $localStripeCustomer = $this->stripe_customers()->create([
             'service_integration_id' => $serviceIntegration->id,
             'customer_id'            => $stripeCustomer->id
         ]);
+
+        $localStripeCustomer
+            ->putStripeServiceIntegration($serviceIntegration)
+            ->putStripeCustomer($stripeCustomer);
 
         return $stripeCustomer;
     }
@@ -227,60 +213,78 @@ trait ManagesCustomer
      * @param int|null $serviceIntegrationId
      * @param  array  $opts
      * @return \Stripe\Customer
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function updateStripeCustomer($serviceIntegrationId = null, array $opts = [])
     {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        } 
-
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-
-        $stripeCustomer = $stripeClientConnection->customers->update(
-            $stripeCustomerId, $opts
-        );
-
-        $this->setAsStripeCustomer($stripeCustomer);
-
-        return $stripeCustomer;
-    }
-
-
-    /**
-     * Store the stripe customer instance in the stripeCustomerRecentlyFetched
-     * 
-     * @param \Stripe\Customer
-     * @return void
-     */
-    public function setAsStripeCustomer(Customer $stripeCustomer)
-    {
-        if ($stripeCustomer->id === null) {
-            return ;
-        }
-        $this->stripeCustomerRecentlyFetched   = $stripeCustomer;
-        $this->stripeCustomerIdRecentlyFetched = $stripeCustomer->id;
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->updateAsStripe($opts);
     }
 
     /**
-     * Store the stripe customer id in the stripeCustomerIdRecentlyFetched attribute 
+     * Undocumented function
+     *
+     * @param int $serviceIntegrationId
+     * @return \BlackSpot\StripeMultipleAccounts\StripeCustomer
      * 
-     * @param string
-     * @return void
-     */
-    public function setStripeCustomerIdToCache($stripeCustomerId)
+     * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
+     */    
+    public function asLocalStripeCustomer($serviceIntegrationId = null)
     {
-        if ($stripeCustomerId == null || $stripeCustomerId == '') {
-            return ;
-        }
+        $this->assertCustomerExists($serviceIntegrationId);
 
-        $this->stripeCustomerIdRecentlyFetched = $stripeCustomerId;
+        $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
+
+        $localStripeCustomer->assertCustomerExists();
+
+        return $localStripeCustomer;
     }
 
+    /**
+     * Get from the local database the stripe customer
+     *
+     * @param int $serviceIntegrationId
+     * @return null
+     * 
+     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
+     */
+    protected function getFromLocalDatabaseStripeCustomer($serviceIntegrationId = null)
+    {           
+        $serviceIntegration   = $this->getStripeServiceIntegration($serviceIntegrationId);
+        $serviceIntegrationId = $serviceIntegration->id;
+
+        if (isset($this->localDatabaseStripeCustomerRecentlyFetched[$serviceIntegrationId])) {
+            return $this->localDatabaseStripeCustomerRecentlyFetched[$serviceIntegrationId];
+        }
+
+        $localStripeCustomer = $this->stripe_customers()->serviceIntegration($serviceIntegrationId)->first();
+
+        if (is_null($localStripeCustomer)) {
+            unset($this->localDatabaseStripeCustomerRecentlyFetched[$serviceIntegrationId]);
+    
+            return null;            
+        }
+
+        $localStripeCustomer->putStripeServiceIntegration($serviceIntegration);
+
+        return $this->localDatabaseStripeCustomerRecentlyFetched[$serviceIntegrationId] = $localStripeCustomer;
+    }
+
+    /**
+     * Determine if the customer has a Stripe customer ID and throw an exception if not.
+     *
+     * @param int|null $serviceIntegrationId
+     * @return \BlackSpot\StripeMultipleAccounts\StripeCustomer
+     *
+     * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
+     */
+    protected function assertCustomerExists($serviceIntegrationId = null)
+    {
+        $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
+        
+        if (is_null($localStripeCustomer)) {
+            throw InvalidStripeCustomer::notYetCreated($this);
+        }
+    }
 
 }

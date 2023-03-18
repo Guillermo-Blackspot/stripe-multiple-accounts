@@ -2,6 +2,8 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeCustomer;
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
 use Stripe\Collection;
 use Stripe\PaymentMethod;
 use Stripe\StripeClient;
@@ -9,11 +11,16 @@ use Stripe\StripeClient;
 /**
  * Manages the customer payment methods
  * 
- * @method createStripeSetupIntent(?int $serviceIntegrationId = null, array $opts = []) : \Stripe\SetupIntent
- * @method getStripePaymentMethods(?int $serviceIntegrationId = null, string $type = 'card') : \Stripe\Collection
- * @method addStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : \Stripe\PaymentMethod
- * @method deleteStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId) : void
- * @method getOrAddStripePaymentMethod(?int $serviceIntegrationId = null, string $paymentMethodId, string $type = 'card') : \Stripe\PaymentMethod|null
+ * Every method can throws InvalidStripeServiceIntegration|InvalidStripeCustomer
+ * 
+ * @method createStripeSetupIntent($serviceIntegrationId = null, $opts = [])
+ * @method getStripePaymentMethods($serviceIntegrationId = null, $type = 'card')
+ * @method addStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
+ * @method deleteStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
+ * @method getOrAddStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId, $type = 'card')
+ * @method setDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId)
+ * @method updateDefaultStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
+ * @method getDefaultStripePaymentMethod($serviceIntegrationId = null)
  */
 trait ManagesPaymentMethods
 {
@@ -25,26 +32,12 @@ trait ManagesPaymentMethods
      * @param array  $opts
      * 
      * @return \Stripe\SetupIntent|null
-     * @throws \Stripe\Exception\ApiErrorException — if the request fails
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function createStripeSetupIntent($serviceIntegrationId = null, $opts = [])
     {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }        
-        
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-        
-        // Default payment_method_types = ['card']
-        $opts['customer'] = $stripeCustomerId;
-
-        return $stripeClientConnection->setupIntents->create($opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->createStripeSetupIntent($opts);
     }
 
     /**
@@ -56,24 +49,12 @@ trait ManagesPaymentMethods
      * @param string  $type = 'card'
      * 
      * @return \Stripe\Collection<\Stripe\PaymentMethod/>
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function getStripePaymentMethods($serviceIntegrationId = null, $type = 'card')
-    {    
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-        $emptyStripeCollection  = new Collection();
-        $emptyStripeCollection->data = [];
-
-        if (is_null($stripeClientConnection)) {
-            return $emptyStripeCollection;
-        }
-        
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return $emptyStripeCollection;
-        }
-
-        return $stripeClientConnection->customers->allPaymentMethods($stripeCustomerId, ['type' => $type]);
+    {            
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->getStripePaymentMethods($type);        
     }
 
     /**
@@ -84,22 +65,12 @@ trait ManagesPaymentMethods
      * @param int|null $serviceIntegrationId
      * @param string $paymentMethodId
      * @return \Stripe\PaymentMethod|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function addStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
     {    
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-        
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-
-        return $stripeClientConnection->paymentMethods->attach($paymentMethodId, ['customer' => $stripeCustomerId]);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->addStripePaymentMethod($paymentMethodId);
     }
  
     /**
@@ -111,22 +82,12 @@ trait ManagesPaymentMethods
      * @param string $paymentMethodId
      * 
      * @return void|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function deleteStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
     {    
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-        
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-
-        $stripeClientConnection->paymentMethods->detach($paymentMethodId);
+        $this->asLocalStripeCustomer($serviceIntegrationId)->deleteStripePaymentMethod($paymentMethodId);
     }
 
 
@@ -140,17 +101,12 @@ trait ManagesPaymentMethods
      * @param string $type = 'card'
      * 
      * @return \Stripe\PaymentMethod|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function getOrAddStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId, $type = 'card')
     {
-        $stripePaymentMethods = collect($this->getStripePaymentMethods($serviceIntegrationId, $type)->data);        
-        $stripePaymentMethod  = $stripePaymentMethods->firstWhere('id', $paymentMethodId);
-
-        if ($stripePaymentMethod instanceof PaymentMethod) {
-            return $stripePaymentMethod;
-        }
-
-        return $this->addStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->getOrAddStripePaymentMethod($paymentMethodId, $type);        
     }    
 
     /**
@@ -161,10 +117,12 @@ trait ManagesPaymentMethods
      * @param  int|null  $serviceIntegrationId
      * @param  string  $paymentMethodId
      * @return \Stripe\PaymentMethod|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function setDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId)
     {
-        return $this->updateDefaultStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->setDefaultStripePaymentMethod($paymentMethodId);
     }
 
     /**
@@ -173,28 +131,13 @@ trait ManagesPaymentMethods
      * @param  int|null  $serviceIntegrationId
      * @param  string  $paymentMethodId
      * @return \Stripe\PaymentMethod|null
+     *
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function updateDefaultStripePaymentMethod($serviceIntegrationId = null, $paymentMethodId)
     {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }            
-        
-        $paymentMethod = $this->getOrAddStripePaymentMethod($serviceIntegrationId, $paymentMethodId);
-
-        if (is_null($paymentMethod)) {
-            return ;
-        }
-
-        $this->updateStripeCustomer($serviceIntegrationId, [
-            'invoice_settings' => ['default_payment_method' => $paymentMethod->id],
-        ]);
-
-        return $paymentMethod;
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->setDefaultStripePaymentMethod($paymentMethodId);
     }
-
 
     /**
      * Get the default payment method for the customer.
@@ -204,21 +147,12 @@ trait ManagesPaymentMethods
      * @param int|null  $serviceIntegrationId
      * 
      * @return \Stripe\PaymentMethod|\Stripe\Card|\Stripe\BankAccount|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function getDefaultStripePaymentMethod($serviceIntegrationId = null)
     {        
-        $customer = $this->getStripeCustomer($serviceIntegrationId);
-
-        if (is_null($customer)) {
-            return ;
-        }
-
-        if ($customer->invoice_settings->default_payment_method) {
-            return $customer->invoice_settings->default_payment_method;
-        }
-
-        // If we can't find a payment method, try to return a legacy source...
-        return $customer->default_source;
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->getDefaultStripePaymentMethod();
     }
 
 }

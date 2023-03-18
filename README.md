@@ -94,8 +94,8 @@ All available methods
     $user->getStripeClientConnection($serviceIntegrationId);            // nullable
     $user->getStripeServiceIntegration($serviceIntegrationId);          // nullable
     $user->assertStripeServiceIntegrationExists($serviceIntegrationId); // terminal
-    $user->getRelatedStripeSecretKey($serviceIntegrationId);            // nullable
-    $user->getRelatedStripePublicKey($serviceIntegrationId);            // nullable
+    $user->getStripeSecretKey($serviceIntegrationId);            // nullable
+    $user->getStripePublicKey($serviceIntegrationId);            // nullable
 
     // ManagesCustomer.php
     $user->stripeCustomerExists($serviceIntegrationId);                        // bool
@@ -139,7 +139,7 @@ All available methods
 
 
     /** @var \BlackSpot\StripeMultipleAccounts\Models\StripeUser */
-    $stripeUser = user()->stripe_users()->where('service_integration_id', $serviceIntegrationId)->first();
+    $stripeUser = user()->stripe_customers()->where('service_integration_id', $serviceIntegrationId)->first();
 
 ```
 

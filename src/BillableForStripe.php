@@ -9,17 +9,17 @@ use BlackSpot\StripeMultipleAccounts\Concerns\ManagesPaymentMethodSources;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesSubscriptions;
 use BlackSpot\StripeMultipleAccounts\Concerns\PerformsCharges;
 use BlackSpot\StripeMultipleAccounts\Relationships\HasStripeSubscriptions;
-use BlackSpot\StripeMultipleAccounts\Relationships\HasStripeUsers;
 
-trait Billable
+trait BillableForStripe
 {
     use ManagesAuthCredentials;
-    use HasStripeUsers;
-    use HasStripeSubscriptions;
     use ManagesCustomer;
     use ManagesPaymentMethodSources;
     use ManagesPaymentMethods;
     use PerformsCharges;
+    
+    /// Faltarian las suscriptiones
+    use HasStripeSubscriptions;
     use ManagesSubscriptions;
 
     public function clearStripeBillableCache()

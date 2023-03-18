@@ -8,6 +8,20 @@ namespace BlackSpot\StripeMultipleAccounts\Concerns;
 trait PerformsCharges
 {    
     /**
+     * Find a payment intent by ID.
+     *
+     * @param  int|null  $serviceIntegrationId
+     * @param  string  $paymentIntentId
+     * @return \Stripe\PaymentIntent|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
+     */
+    public function findStripePaymentIntent($serviceIntegrationId = null, $paymentIntentId)
+    {
+        return return $this->asLocalStripeCustomer($serviceIntegrationId)->findStripePaymentIntent($paymentIntentId);
+    }
+
+    /**
      * Make a "one off" charge on the customer for the given amount.
      *
      * @param int|null  $serviceIntegrationId
@@ -16,17 +30,12 @@ trait PerformsCharges
      * @param array  $opts
      * 
      * @return \Stripe\PaymentIntent|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function makeStripeCharge($serviceIntegrationId = null, $amount, $paymentMethodId, array $opts = [])
     { 
-        $opts = array_merge([
-            'confirmation_method' => 'automatic',
-            'confirm'             => true,
-        ], $opts);
-        
-        $opts['payment_method'] = $paymentMethodId;
-
-        return $this->createStripePaymentIntent($serviceIntegrationId, $amount, $opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->makeStripeCharge($amount, $paymentIntentId, $opts);
     }
 
     /**
@@ -38,14 +47,12 @@ trait PerformsCharges
      * @param  int  $amount
      * @param  array  $opts
      * @return \Stripe\PaymentIntent|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function stripePay($serviceIntegrationId = null, $amount, array $opts = [])
     {
-        $opts['automatic_payment_methods'] = ['enabled' => true];
-
-        unset($opts['payment_method_types']);
-
-        return $this->createStripePaymentIntent($serviceIntegrationId, $amount, $opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->stripePay($amount, $opts);
     }
     
     /**
@@ -57,14 +64,12 @@ trait PerformsCharges
      * @param array  $opts
      * 
      * @return \Stripe\PaymentIntent|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function createStripePaymentIntentWith($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
     {                
-        $opts['payment_method_types'] = $paymentMethods;        
-
-        unset($opts['automatic_payment_methods']);
-
-        return $this->createStripePaymentIntent($serviceIntegrationId, $amount, $opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->stripePay($amount, $paymentMethods, $opts);
     }
 
     /**
@@ -75,27 +80,12 @@ trait PerformsCharges
      * @param array  $opts
      * 
      * @return \Stripe\PaymentIntent|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function createStripePaymentIntent($serviceIntegrationId = null, $amount, array $opts = [])
     {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-
-        $stripeCustomerId = $this->getStripeCustomerId($serviceIntegrationId);
-
-        if (is_null($stripeCustomerId)) {
-            return ;
-        }
-
-        $opts = array_merge(['currency' => 'mxn'], $opts);
-
-        $opts['amount']   = $amount;
-        $opts['customer'] = $stripeCustomerId;
-
-        return $stripeClientConnection->paymentIntents->create($opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->createStripePaymentIntent($amount, $opts);
     }
 
     /**
@@ -106,36 +96,11 @@ trait PerformsCharges
      * @param  array  $opts
      * 
      * @return \Stripe\Refund|null
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function refundStripePaymentIntent($serviceIntegrationId = null, $paymentIntentId, array $opts = [])
     {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-
-        return $stripeClientConnection->refunds->create(array_merge(
-            ['payment_intent' => $paymentIntentId], $opts
-        ));
-    }    
-
-    /**
-     * Find a payment intent by ID.
-     *
-     * @param  int|null  $serviceIntegrationId
-     * @param  string  $paymentIntentId
-     * @return \Stripe\PaymentIntent|null
-     */
-    public function findStripePaymentIntent($serviceIntegrationId = null, $paymentIntentId)
-    {
-        $stripeClientConnection = $this->getStripeClientConnection($serviceIntegrationId);
-
-        if (is_null($stripeClientConnection)) {
-            return ;
-        }
-        
-        return $stripeClientConnection->paymentIntents->retrieve($paymentIntentId);
-    }
-    
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->refundStripePaymentIntent($paymentIntentId, $opts);
+    }        
 }

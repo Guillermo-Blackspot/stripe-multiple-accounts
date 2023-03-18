@@ -3,37 +3,20 @@
 use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegration;
 use BlackSpot\StripeMultipleAccounts\Models\StripeProduct;
 use BlackSpot\StripeMultipleAccounts\Models\StripeSubscription;
-use BlackSpot\StripeMultipleAccounts\Models\StriprSubscriptionItem;
-use BlackSpot\StripeMultipleAccounts\Models\StripeUser;
+use BlackSpot\StripeMultipleAccounts\Models\StripeSubscriptionItem;
+use BlackSpot\StripeMultipleAccounts\Models\StripeCustomer;
 
 return [    
 
     /**
-     * Models
+     * Copy this in the service-integrations-container.php config
      */
-    'relationship_models' => [
-        'stripe_accounts'    => ServiceIntegration::class,
-        'products'           => StripeProduct::class,
-        'customers'          => StripeUser::class,
-        'subscriptions'      => StripeSubscription::class,
-        'subscription_items' => StriprSubscriptionItem::class,
-        'local_users'        => \App\Models\User::class
-    ],
- 
 
-    'stripe_integrations' => [
-        /**
-         * Payload column
-         * 
-         * must be a json column
-         */        
-        'payload' => [
-            'column'         => 'payload',
-            'stripe_key'     => 'stripe_key',
-            'stripe_secret'  => 'stripe_secret',
-            'webhook_secret' => 'stripe_webhook_secret',
-        ]
+    'stripe_models' => [
+        'local_user'         => \App\Models\User::class,
+        'product'            => StripeProduct::class,
+        'customer'           => StripeCustomer::class,
+        'subscription'       => StripeSubscription::class,
+        'subscription_item'  => StripeSubscriptionItem::class,
     ]
-
-
 ];

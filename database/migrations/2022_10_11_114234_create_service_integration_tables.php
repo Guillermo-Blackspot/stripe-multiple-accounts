@@ -13,27 +13,19 @@ class CreateServiceIntegrationTables extends Migration
      */
     public function up()
     {
-        Schema::create('service_integrations', function (Blueprint $table) {
-            $table->id();            
-            $table->string('name');
-            $table->char('short_name', 10);
-            $table->string('documentation_link')->nullable();
-            $table->json('payload')->nullable();
-            $table->boolean('active')->nullable()->default(0);
-            $table->morphs('owner');
-            $table->timestamps();
-        });
-
-        Schema::create('stripe_users', function (Blueprint $table) {
-            $table->id();        
-
-            $table->morphs('model'); // \App\Models\User
+        Schema::create('stripe_customers', function (Blueprint $table) {
+            $table->id();
+            $table->string('owner_name');
+            $table->string('owner_email');
+            $table->string('customer_id');
+            
+            $table->nullableMorphs('owner'); // \App\Models\User
 
             $table->foreignId('service_integration_id')
+                ->nullable()
                 ->constrained('service_integrations')
-                ->cascadeOnDelete();
-
-            $table->string('customer_id')->unique();
+                ->nullOnDelete();
+                
             $table->timestamps();
         });
 
@@ -98,14 +90,12 @@ class CreateServiceIntegrationTables extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('service_integrations');
-
-        Schema::table('stripe_users', function (Blueprint $table) {
+        Schema::table('stripe_customers', function (Blueprint $table) {
             $table->dropForeign(['service_integration_id']);
             $table->dropColumn('service_integration_id');            
         }); 
 
-        Schema::dropIfExists('stripe_users');
+        Schema::dropIfExists('stripe_customers');
 
         Schema::table('service_integration_products', function (Blueprint $table) {
             $table->dropForeign(['service_integration_id']);
