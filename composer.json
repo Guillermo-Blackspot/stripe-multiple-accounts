@@ -17,7 +17,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "BlackSpot\\StripeMultipleAccounts\\StripeMultipleAccountsServiceProvider"
+                "BlackSpot\\StripeMultipleAccounts\\ServiceProvider"
             ]
         }
     },

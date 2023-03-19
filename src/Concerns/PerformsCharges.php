@@ -18,7 +18,7 @@ trait PerformsCharges
      */
     public function findStripePaymentIntent($serviceIntegrationId = null, $paymentIntentId)
     {
-        return return $this->asLocalStripeCustomer($serviceIntegrationId)->findStripePaymentIntent($paymentIntentId);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->findStripePaymentIntent($paymentIntentId);
     }
 
     /**

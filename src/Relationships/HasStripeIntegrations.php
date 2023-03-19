@@ -4,29 +4,19 @@ namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
 use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegration;
 
-trait HasServiceIntegrations
+trait HasStripeIntegrations
 {
+ 
   /**
-   * Boot on delete method
+   * Scope by name and short name of the stripe provider
+   *
+   * @param \Illuminate\Database\Eloquent\Builder $query
+   * @return \Illuminate\Database\Eloquent\Builder
    */
-  public static function bootHasServiceIntegrations()
+  public function scopeStripeService($query)
   {
-    static::deleting(function ($model) {
-      if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
-        return;
-      }
-      $model->service_integrations()->delete();
-    });
-  }
-
-  /**
-  * Get the service_integrations
-  *
-  * @return \Illuminate\Database\Eloquent\Relations\MorphToMany
-  */
-  public function service_integrations()
-  {
-    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.stripe_accounts'), 'owner');
+    return $query->where('name', ServiceIntegration::STRIPE_SERVICE)
+              ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
   }
 
 
@@ -54,8 +44,8 @@ trait HasServiceIntegrations
    * For a better performance use the scope ->withStripeServiceIntegration() before use 
    * this function
    * 
-   * @param boolean $evaluatesActiveStatus
-   * @return boolean
+   * @param bool $evaluatesActiveStatus
+   * @return bool
    */
   public function hasStripeServiceIntegration($evaluatesActiveStatus = false)
   {  
@@ -68,9 +58,9 @@ trait HasServiceIntegrations
    * For a better performance use the scope ->withStripeServiceIntegration() before use 
    * this function
    * 
-   * @return boolean
+   * @return bool
    */
-  public function hasStripeServiceIntegrationActive()
+  public function hasActiveStripeServiceIntegration()
   {  
     return $this->findStripeServiceIntegration(true)->isNotEmpty();
   }
@@ -101,17 +91,43 @@ trait HasServiceIntegrations
     return $this->findStripeServiceIntegration(false)->first();
   }
 
+
+  /**
+   * Scope where has stripe service integration
+   *
+   * @param \Illuminate\Database\Eloquent\Builder $query
+   * @return \Illuminate\Database\Eloquent\Builder
+   */
+  public function scopeWhereHasStripeServiceIntegration($query)
+  {
+    return $query->whereHas('service_integrations', function($query) {
+      $query->where('name', ServiceIntegration::SYSTEM_CHARGES_SERVICE)
+            ->where('short_name', ServiceIntegration::SYSTEM_CHARGES_SERVICE_SHORT_NAME);
+    });
+  }
+
+  /**
+   * Scope where has stripe service integration active
+   *
+   * @param \Illuminate\Database\Eloquent\Builder $query
+   * @return \Illuminate\Database\Eloquent\Builder
+   */
+  public function scopeWhereHasActiveStripeServiceIntegration($query)
+  {
+    return $query->whereHas('service_integrations', function($query) {
+      $query->where('name', ServiceIntegration::SYSTEM_CHARGES_SERVICE)
+            ->where('short_name', ServiceIntegration::SYSTEM_CHARGES_SERVICE_SHORT_NAME)
+            ->where('active', true);
+    });
+  }
+
+  /**
+   * Scope to load stripe service integration
+   *
+   * @param \Illuminate\Database\Eloquent\Builder $query
+   * @return \Illuminate\Database\Eloquent\Builder
+   */
   public function scopeWithStripeServiceIntegration($query)
-  {
-    return $query->joinStripeServiceIntegration();
-  }
-
-  public function scopeWithStripeServiceIntegrationIfActive($query)
-  {
-    return $query->joinStripeServiceIntegrationIfActive();
-  }
-
-  public function scopeJoinStripeServiceIntegration($query)
   {
     return $query->with(['service_integrations' => function($query){
       $query->select('id','payload','owner_id','owner_type','active','name','short_name')
@@ -120,7 +136,13 @@ trait HasServiceIntegrations
     }]);
   }
 
-  public function scopeJoinStripeServiceIntegrationIfActive($query)
+  /**
+   * Scope to load stripe service integration if it active
+   *
+   * @param \Illuminate\Database\Eloquent\Builder $query
+   * @return \Illuminate\Database\Eloquent\Builder
+   */
+  public function scopeWithActiveStripeServiceIntegration($query)
   {
     return $query->with(['service_integrations' => function($query){
       $query->select('id','payload','owner_id','owner_type','active','name','short_name')

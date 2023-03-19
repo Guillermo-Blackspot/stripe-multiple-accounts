@@ -50,7 +50,7 @@ trait ManagesCustomer
     public function stripeCustomerExists($serviceIntegrationId = null)
     {
         try {
-            $this->asLocalStripeCustomer($serviceIntegrationId)
+            $this->asLocalStripeCustomer($serviceIntegrationId);
             return true;
         } catch (InvalidStripeServiceIntegration $err) {
             return false;
@@ -113,7 +113,7 @@ trait ManagesCustomer
      */
     public function createStripeCustomerIfNotExists($serviceIntegrationId = null, array $opts = [])
     {
-        $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegration)
+        $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
 
         // Exists
         if (! is_null($localStripeCustomer)) {

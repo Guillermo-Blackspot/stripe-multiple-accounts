@@ -57,7 +57,7 @@ trait ManagesAuthCredentials
         
         // Try to resolve
         if (is_null($stripeIntegration)){
-            $serviceIntegration = $this->getStripeServiceIntegrationQuery($serviceIntegrationId)->first();
+            $stripeIntegration = $this->getStripeServiceIntegrationQuery($serviceIntegrationId)->first();
         }
 
         if (is_null($stripeIntegration)) {
@@ -70,7 +70,9 @@ trait ManagesAuthCredentials
             throw InvalidStripeServiceIntegration::payloadColumnNotFound($this, $payloadColumn);
         }
 
-        $service->{$payloadColumn.'_decoded'} = json_decode($service->{$payloadColumn}, true);
+        $payloadValue = $stripeIntegration->{$payloadColumn};
+
+        $stripeIntegration->{$payloadColumn.'_decoded'} = is_array($payloadValue) ? $payloadValue : json_decode($payloadValue, true);
 
         return $this->putServiceIntegrationFound($stripeIntegration);
     }
