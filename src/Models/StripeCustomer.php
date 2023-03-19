@@ -144,7 +144,7 @@ class StripeCustomer extends Model
     {
         $this->assertExistsAsStripe();
 
-        return $this->getStripeClientConnection($this->service_integration_id)->customers->allPaymentMethods($this->customer_id, ['type' => $type])
+        return $this->getStripeClientConnection($this->service_integration_id)->customers->allPaymentMethods($this->customer_id, ['type' => $type]);
     }
 
     public function addStripePaymentMethod($paymentMethodId)

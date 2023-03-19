@@ -45,10 +45,10 @@ class ServiceProvider extends LaravelProvider
     {
         $this->publishes([
             __DIR__.'/../config/'.self::PACKAGE_NAME.'.php' => base_path('config/'.(self::PACKAGE_NAME).'.stub.php'),
-        ], [self::PACKAGE_NAME.':config']);
+        ], [self::PACKAGE_NAME.':config', 'config']);
 
         $this->publishes([
             __DIR__.'/../database/migrations' => base_path('database/migrations')
-        ], [self::PACKAGE_NAME.':migrations']);
+        ], [self::PACKAGE_NAME.':migrations', 'migrations']);
     }
 }

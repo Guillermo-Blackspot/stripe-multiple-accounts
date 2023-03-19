@@ -108,7 +108,13 @@ trait ManagesAuthCredentials
     {
         $stripeIntegration  = $this->getStripeServiceIntegration($serviceIntegrationId);
         $stripeSecretColumn = ServiceIntegrationsContainerProvider::getFromConfig('services.stripe.payload.stripe_secret');
-        $decoded            = $stripeIntegration->{$payloadColumn.'_decoded'};
+        $payloadColumn      = ServiceIntegrationsContainerProvider::getFromConfig('payload_colum','payload');
+
+        if (! isset($stripeIntegration->{$payloadColumn})) {
+            throw InvalidStripeServiceIntegration::payloadColumnNotFound($this, $payloadColumn);
+        }
+
+        $decoded = $stripeIntegration->{$payloadColumn.'_decoded'};
 
         if (! isset($decoded[$stripeSecretColumn])) {
             throw InvalidStripeServiceIntegration::payloadAttributeValueIsNull($this, $stripeSecretColumn);
@@ -127,9 +133,15 @@ trait ManagesAuthCredentials
      */
     public function getStripePublicKey($serviceIntegrationId = null)
     {
-        $stripeIntegration  = $this->getStripeServiceIntegration($serviceIntegrationId);
+        $stripeIntegration     = $this->getStripeServiceIntegration($serviceIntegrationId);
         $stripePublicKeyColumn = ServiceIntegrationsContainerProvider::getFromConfig('services.stripe.payload.stripe_key');
-        $decoded            = $stripeIntegration->{$payloadColumn.'_decoded'};
+        $payloadColumn         = ServiceIntegrationsContainerProvider::getFromConfig('payload_colum','payload');
+
+        if (! isset($stripeIntegration->{$payloadColumn})) {
+            throw InvalidStripeServiceIntegration::payloadColumnNotFound($this, $payloadColumn);
+        }
+        
+        $decoded = $stripeIntegration->{$payloadColumn.'_decoded'};
 
         if (! isset($decoded[$stripePublicKeyColumn])) {
             throw InvalidStripeServiceIntegration::payloadAttributeValueIsNull($this, $stripePublicKeyColumn);
