@@ -200,7 +200,7 @@ trait ManagesCustomer
         ]);
 
         $localStripeCustomer
-            ->putStripeServiceIntegration($serviceIntegration)
+            ->putServiceIntegrationFound($serviceIntegration)
             ->putStripeCustomer($stripeCustomer);
 
         return $stripeCustomer;
@@ -235,7 +235,7 @@ trait ManagesCustomer
 
         $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
 
-        $localStripeCustomer->assertCustomerExists();
+        $localStripeCustomer->assertExistsAsStripe();
 
         return $localStripeCustomer;
     }
@@ -265,7 +265,7 @@ trait ManagesCustomer
             return null;            
         }
 
-        $localStripeCustomer->putStripeServiceIntegration($serviceIntegration);
+        $localStripeCustomer->putServiceIntegrationFound($serviceIntegration);
 
         return $this->localDatabaseStripeCustomerRecentlyFetched[$serviceIntegrationId] = $localStripeCustomer;
     }

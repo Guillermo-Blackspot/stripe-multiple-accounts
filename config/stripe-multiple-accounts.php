@@ -13,7 +13,6 @@ return [
      */
 
     'stripe_models' => [
-        'local_user'         => \App\Models\User::class,
         'product'            => StripeProduct::class,
         'customer'           => StripeCustomer::class,
         'subscription'       => StripeSubscription::class,

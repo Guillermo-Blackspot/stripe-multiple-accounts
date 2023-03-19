@@ -101,8 +101,8 @@ trait HasStripeIntegrations
   public function scopeWhereHasStripeServiceIntegration($query)
   {
     return $query->whereHas('service_integrations', function($query) {
-      $query->where('name', ServiceIntegration::SYSTEM_CHARGES_SERVICE)
-            ->where('short_name', ServiceIntegration::SYSTEM_CHARGES_SERVICE_SHORT_NAME);
+      $query->where('name', ServiceIntegration::STRIPE_SERVICE)
+            ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
     });
   }
 
@@ -115,8 +115,8 @@ trait HasStripeIntegrations
   public function scopeWhereHasActiveStripeServiceIntegration($query)
   {
     return $query->whereHas('service_integrations', function($query) {
-      $query->where('name', ServiceIntegration::SYSTEM_CHARGES_SERVICE)
-            ->where('short_name', ServiceIntegration::SYSTEM_CHARGES_SERVICE_SHORT_NAME)
+      $query->where('name', ServiceIntegration::STRIPE_SERVICE)
+            ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME)
             ->where('active', true);
     });
   }

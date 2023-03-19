@@ -107,7 +107,7 @@ trait ManagesAuthCredentials
     public function getStripeSecretKey($serviceIntegrationId = null)
     {
         $stripeIntegration  = $this->getStripeServiceIntegration($serviceIntegrationId);
-        $stripeSecretColumn = ServiceIntegrationsContainerProvider::getFromConfig('services.stripe.payload.stripe_secret');
+        $stripeSecretColumn = 'stripe_secret';
         $payloadColumn      = ServiceIntegrationsContainerProvider::getFromConfig('payload_colum','payload');
 
         if (! isset($stripeIntegration->{$payloadColumn})) {
@@ -134,7 +134,7 @@ trait ManagesAuthCredentials
     public function getStripePublicKey($serviceIntegrationId = null)
     {
         $stripeIntegration     = $this->getStripeServiceIntegration($serviceIntegrationId);
-        $stripePublicKeyColumn = ServiceIntegrationsContainerProvider::getFromConfig('services.stripe.payload.stripe_key');
+        $stripePublicKeyColumn = 'stripe_key';
         $payloadColumn         = ServiceIntegrationsContainerProvider::getFromConfig('payload_colum','payload');
 
         if (! isset($stripeIntegration->{$payloadColumn})) {
@@ -162,10 +162,20 @@ trait ManagesAuthCredentials
         $this->getStripeServiceIntegration($serviceIntegrationId);
     }
 
-    public function putStripeServiceIntegration($serviceIntegration)
-    {
-        $this->stripeServiceIntegrations[$serviceIntegration->id] = $serviceIntegration;
 
-        return $this;
+    /**
+     * Determine if the customer has a active Stripe service integration, throw an exception if not.
+     *
+     * @return void
+     *
+     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
+     */
+    public function assertActiveStripeServiceIntegrationExists($serviceIntegrationId = null)
+    {
+        $isActive = $this->getStripeServiceIntegration($serviceIntegrationId)->active;
+
+        if (! $isActive) {
+            InvalidStripeServiceIntegration::isDisabled($this);
+        }
     }
 }

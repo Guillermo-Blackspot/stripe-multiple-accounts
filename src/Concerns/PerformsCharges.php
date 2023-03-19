@@ -35,7 +35,7 @@ trait PerformsCharges
      */
     public function makeStripeCharge($serviceIntegrationId = null, $amount, $paymentMethodId, array $opts = [])
     { 
-        return $this->asLocalStripeCustomer($serviceIntegrationId)->makeStripeCharge($amount, $paymentIntentId, $opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->makeStripeCharge($amount, $paymentMethodId, $opts);
     }
 
     /**
@@ -69,7 +69,7 @@ trait PerformsCharges
      */
     public function createStripePaymentIntentWith($serviceIntegrationId = null, $amount, array $paymentMethods, array $opts = [])
     {                
-        return $this->asLocalStripeCustomer($serviceIntegrationId)->stripePay($amount, $paymentMethods, $opts);
+        return $this->asLocalStripeCustomer($serviceIntegrationId)->createStripePaymentIntentWith($amount, $paymentMethods, $opts);
     }
 
     /**
