@@ -7,6 +7,7 @@ use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeProduct;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
 use BlackSpot\StripeMultipleAccounts\Models\StripeProduct;
+use BlackSpot\StripeMultipleAccounts\Models\StripeSubscriptionItem;
 use BlackSpot\StripeMultipleAccounts\Relationships\BelongsToServiceIntegration;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -222,6 +223,6 @@ class StripeProduct extends Model
 
     public function stripe_subscription_items()
     {
-        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.subscription_item', StripeProduct::class), 'stripe_product_id');
+        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.subscription_item', StripeSubscriptionItem::class), 'stripe_product_id');
     }
 }

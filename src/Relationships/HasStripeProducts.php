@@ -2,7 +2,9 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeProduct;
+use BlackSpot\StripeMultipleAccounts\Models\StripeProduct;
 use BlackSpot\StripeMultipleAccounts\ProductBuilder;
 use BlackSpot\StripeMultipleAccounts\SubscriptionSettingsAccesorsAndMutators;
 
@@ -137,7 +139,7 @@ trait HasStripeProducts
   {
     $this->assertStripeProductExists($serviceIntegrationId);
 
-    return $this->asLocalStripeProduct($serviceIntegrationId)->updateStripeProduct($opts);
+    return $this->localStripeProductsFound[$serviceIntegrationId] = $this->asLocalStripeProduct($serviceIntegrationId)->updateStripeProduct($opts);
   }
 
   /**
@@ -174,7 +176,7 @@ trait HasStripeProducts
     $localProduct = $this->stripe_products()->serviceIntegration($serviceIntegrationId)->first();
 
     if (is_null($localProduct)) {
-      unset($this-->localStripeProductsFound[$serviceIntegrationId]);
+      unset($this->localStripeProductsFound[$serviceIntegrationId]);
     }
 
     return $this->localStripeProductsFound[$serviceIntegrationId] = $localProduct;
@@ -208,6 +210,6 @@ trait HasStripeProducts
   */
   public function stripe_products()
   {
-    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.products'), 'model');
+    return $this->morphMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.product', StripeProduct::class), 'model');
   }
 }
