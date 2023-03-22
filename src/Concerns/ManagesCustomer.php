@@ -271,7 +271,7 @@ trait ManagesCustomer
      * Get from the local database the stripe customer
      *
      * @param int $serviceIntegrationId
-     * @return null
+     * @return \BlackSpot\StripeMultipleAccounts\Models\StripeCustomer
      * 
      * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
      */
