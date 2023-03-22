@@ -2,12 +2,16 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeProduct;
 use BlackSpot\StripeMultipleAccounts\ProductBuilder;
 use BlackSpot\StripeMultipleAccounts\SubscriptionSettingsAccesorsAndMutators;
 
 trait HasStripeProducts
 {
   use SubscriptionSettingsAccesorsAndMutators;
+
+  protected $localStripeProductsFound = [];
+
 
   /**
    * Boot on delete method
@@ -18,7 +22,12 @@ trait HasStripeProducts
         if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
             return;
         }
-        $model->stripe_products()->delete();
+        $model
+          ->stripe_products()
+          ->update([
+            'model_id'   => null,
+            'model_type' => null
+          ]);
     });
   }
 
@@ -37,42 +46,30 @@ trait HasStripeProducts
   /**
    * Determine if the model was synced with stripe
    *
-   * Local query
+   * local connection
    * 
    * @param int $serviceIntegrationId
+   * 
    * @return bool
    */
   public function syncedWithStripe($serviceIntegrationId)
   {
-    return $this->stripe_products()->where('service_integration_id', $serviceIntegrationId)->exists();
+    $this->assertStripeProductExists($serviceIntegrationId);
+
+    return $this->asLocalStripeProduct($serviceIntegrationId) !== null;
   }
 
   /**
    * Get the model was synced with stripe in the local database
    *
-   * Local query
+   * local connection
    * 
    * @param int $serviceIntegrationId
    * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
    */
   public function findStripeProduct($serviceIntegrationId)
   {
-    return $this->stripe_products()->where('service_integration_id', $serviceIntegrationId)->first();
-  }
-
-
-  /**
-   * Update the model synced with stripe
-   *
-   * Local query and Stripe Api connection
-   * 
-   * @param int $serviceIntegrationId
-   * @param array $opts
-   * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
-   */
-  public function updateStripeProduct($serviceIntegrationId, $opts)
-  {
-    return $this->findStripeProduct($serviceIntegrationId)->updateStripeProduct($opts);
+    return $this->asLocalStripeProduct($serviceIntegrationId);
   }
 
   /**
@@ -85,10 +82,14 @@ trait HasStripeProducts
    * 
    * @param int $serviceIntegrationId
    * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+   * 
+   * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
    */
   public function deleteStripeProduct($serviceIntegrationId)
   {
-    return $this->findStripeProduct($serviceIntegrationId)->deleteStripeProduct();
+    $this->assertStripeProductExists($serviceIntegrationId);
+
+    return $this->asLocalStripeProduct($serviceIntegrationId)->deleteStripeProduct();
   }
 
   /**
@@ -97,8 +98,9 @@ trait HasStripeProducts
    * Local query and Stripe Api connection
    * 
    * @param int $serviceIntegrationId
-   * @param array $opts
    * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+   * 
+   * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
    */
   public function activeStripeProduct($serviceIntegrationId)
   {
@@ -111,12 +113,31 @@ trait HasStripeProducts
    * Local query and Stripe Api connection
    * 
    * @param int $serviceIntegrationId
-   * @param array $opts
    * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+   * 
+   * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
    */
   public function disableStripeProduct($serviceIntegrationId)
   {
     return $this->updateStripeProduct($serviceIntegrationId, ['active' => false]);
+  }
+
+  /**
+   * Update the model synced with stripe
+   *
+   * Local query and Stripe Api connection
+   * 
+   * @param int $serviceIntegrationId
+   * @param array $opts
+   * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+   * 
+   * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
+   */
+  public function updateStripeProduct($serviceIntegrationId, array $opts = [])
+  {
+    $this->assertStripeProductExists($serviceIntegrationId);
+
+    return $this->asLocalStripeProduct($serviceIntegrationId)->updateStripeProduct($opts);
   }
 
   /**
@@ -126,10 +147,58 @@ trait HasStripeProducts
    * 
    * @param int $serviceIntegrationId
    * @return int
+   * 
+   * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
    */
-  public function countStripeProductSubscriptionsByItems($serviceIntegrationId)
+  public function countStripeProductsIncludedInSubscriptionsAsItems($serviceIntegrationId)
   {
-    return $this->findStripeProduct($serviceIntegrationId)->stripe_subscription_items()->distinct('stripe_subscription_id')->count();
+    $this->assertStripeProductExists($serviceIntegrationId);
+
+    return $this->asLocalStripeProduct($serviceIntegrationId)->stripe_subscription_items()->distinct('stripe_subscription_id')->count();
+  }
+
+  /**
+   * Get the local stripe customer
+   *
+   * @param int $serviceIntegrationId
+   * @return \BlackSpot\StripeMultipleAccounts\StripeCustomer
+   * 
+   * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
+   */    
+  public function asLocalStripeProduct($serviceIntegrationId)
+  {
+    if (! isset($this->localStripeProductsFound[$serviceIntegrationId])) {
+      return $this->localStripeProductsFound[$serviceIntegrationId];
+    }
+
+    $localProduct = $this->stripe_products()->serviceIntegration($serviceIntegrationId)->first();
+
+    if (is_null($localProduct)) {
+      unset($this-->localStripeProductsFound[$serviceIntegrationId]);
+    }
+
+    return $this->localStripeProductsFound[$serviceIntegrationId] = $localProduct;
+  }
+
+  /**
+   * Determine if the customer has a Stripe customer ID and throw an exception if not.
+   *
+   * @param int|null $serviceIntegrationId
+   * @return \BlackSpot\StripeMultipleAccounts\StripeCustomer
+   *
+   * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
+   */
+  public function assertStripeProductExists($serviceIntegrationId = null)
+  {
+    $localStripeProduct = $this->asLocalStripeProduct($serviceIntegrationId);
+
+    if (is_null($localStripeProduct)) {
+      throw InvalidStripeProduct::notYetCreated($this);
+    }
+
+    $localStripeProduct->assertExistsAsStripe();
+
+    $this->localStripeProductsFound[$serviceIntegrationId] = $localStripeProduct;
   }
 
   /**

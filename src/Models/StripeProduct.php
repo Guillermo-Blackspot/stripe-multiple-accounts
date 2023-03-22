@@ -2,15 +2,26 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Models;
 
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
+use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeProduct;
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
+use BlackSpot\StripeMultipleAccounts\Models\StripeProduct;
+use BlackSpot\StripeMultipleAccounts\Relationships\BelongsToServiceIntegration;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 
 class StripeProduct extends Model
 {
     use ManagesAuthCredentials;
+    use BelongsToServiceIntegration;
 
-    protected ?\Stripe\Product $recentlyStripeProductFetched = null;
+    /**
+     * The stripe product instance
+     * 
+     * @var \Stripe\Product|null
+     */
+    protected $stripeProduct = null;
     
     /** 
      * The table associated with the model.
@@ -51,60 +62,66 @@ class StripeProduct extends Model
         return $this->morphTo('model');   
     }
 
+    /**
+     * Get the value of property from the memo
+     *
+     * @param string $property
+     * 
+     * @return \Stripe\Product|null|string
+     */
+    protected function getFromMemo($property)
+    {
+        if (! is_null($this->{$property})) {
+            return $this->{$property};
+        }
+
+        return ;
+    }    
 
     /**
      * Get the stripe product
      *
      * @return \Stripe\Product
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeProduct
      */
-    public function asStripeProduct()
+    public function asStripe()
     {
-        if ($this->recentlyStripeProductFetched instanceof \Stripe\Product) {
-            return $this->recentlyStripeProductFetched;
+        $stripeCustomer = $this->getFromMemo('stripeProduct');
+        
+        if (! is_null($stripeCustomer)) {
+            return $stripeCustomer;
         }
 
-        $stripeClient = $this->getStripeClientConnection();
-
-        if (is_null($stripeClient)) {
-            return ;
-        }
-
-        return $this->recentlyStripeProductFetched = $stripeClient->products->retrieve($this->product_id);
+        return $this->stripeProduct = $this->getStripeClientConnection($this->service_integration_id)->products->retrieve($this->product_id);
     }
-
-    /**
-     * Set on the memory the stripe product instance
-     *
-     * @param \Stripe\Product $stripeProduct
-     * @return \Stripe\Product
-     */
-    public function setAsStripeProduct(\Stripe\Product $stripeProduct)
-    {
-        return $this->recentlyStripeProductFetched = $stripeProduct;
-    }
-
 
     /**
      * Update stripe product
      * 
-     * Local query and Stripe Api connection
+     * Local connection
+     * stripe connection
      *
      * @param array $opts
-     * @return self
+     * @return $this
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeProduct
      */
-    public function updateStripeProduct($opts)
+    public function updateStripeProduct(array $opts = [])
     {
-        $stripeProduct = $this->getStripeClientConnection()->products->update($this->product_id, (array) $opts);
+        $this->assertExistsAsStripe();
+
+        $stripeProduct = $this->getStripeClientConnection($this->service_integration_id)->products->update($this->product_id, (array) $opts);
 
         $this->fill([
             'name'             => $stripeProduct->name,
-            //'description'      => $stripeProduct->description,
             'default_price_id' => $stripeProduct->default_price,
             'active'           => $stripeProduct->active,
             'unit_label'       => $stripeProduct->unit_label,
+            //'description'     => $stripeProduct->description,
         ])->save();
 
-        $this->setAsStripeProduct($stripeProduct);
+        $this->putStripeProduct($stripeProduct);
 
         return $this;
     }
@@ -113,23 +130,28 @@ class StripeProduct extends Model
     /**
      * Delete stripe product
      * 
-     * Local query and Stripe Api connection
+     * local connection
+     * stripe connection
      * 
      * The stripe product will be disabled and the local register will be deleted
      * StripePHP api not allows delete products, you must delete it from the dashboard
      *
-     * @return self
+     * @return $this
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeProduct
      */
     public function deleteStripeProduct()
     {        
-        $stripeProduct = $this->getStripeClientConnection()->products->update($this->product_id, [
+        $this->assertExistsAsStripe();
+
+        $stripeProduct = $this->getStripeClientConnection($this->service_integration_id)->products->update($this->product_id, [
             'name'   => $this->name . ' (Deleted from PHP API) ',
             'active' => false
         ]);
 
         $this->delete();
 
-        $this->setAsStripeProduct($stripeProduct);
+        $this->putStripeProduct($stripeProduct);
 
         return $this;
     }
@@ -140,6 +162,8 @@ class StripeProduct extends Model
      * Local query and Stripe Api connection
      * 
      * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeProduct
      */
     public function activeStripeProduct()
     {
@@ -152,6 +176,8 @@ class StripeProduct extends Model
      * Local query and Stripe Api connection
      *
      * @return \BlackSpot\StripeMultipleAccounts\Models\StripeProduct
+     * 
+     * @throws InvalidStripeServiceIntegration|InvalidStripeProduct
      */
     public function disableStripeProduct($serviceIntegrationId)
     {
@@ -159,13 +185,43 @@ class StripeProduct extends Model
     }    
 
 
-    public function service_integration()
+    /**
+     * It is used for set the stripe Product that belongsTo the local model
+     *
+     * By default is used in the "createStripeProduct" method of the "HasStripeProducts" trait
+     * 
+     * @param \Stripe\Product $stripeProduct
+     * 
+     * @return $this
+     */
+    public function putStripeProduct(\Stripe\Product $stripeProduct)
     {
-        return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.stripe_accounts'), 'service_integration_id');
+        $this->stripeP$stripeProduct = $stripeProduct;
+
+        return $this;
     }
+
+    /**
+     * Assert if exists as stripe product
+     *
+     * @throws InvalidStripeServiceIntegration|InvalidStripeProduct
+     */
+    public function assertExistsAsStripe()
+    {
+        if (is_null($this->service_integration_id)) {
+            throw InvalidStripeServiceIntegration::notYetCreated($this);
+        }
+
+        if (is_null($this->product_id)) {
+            throw InvalidStripeProduct::notYetCreated($this);
+        }
+
+        $this->getStripeClientConnection($this->service_integration_id); 
+    }
+
 
     public function stripe_subscription_items()
     {
-        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 's_product_id');
+        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.subscription_item', StripeProduct::class), 'stripe_product_id');
     }
 }

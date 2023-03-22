@@ -6,6 +6,7 @@ use BlackSpot\ServiceIntegrationsContainer\Models\ServiceIntegration;
 use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeCustomer;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
+use BlackSpot\StripeMultipleAccounts\Models\StripeCustomer;
 use BlackSpot\StripeMultipleAccounts\Relationships\HasStripeUsers;
 use Illuminate\Support\Facades\DB;
 use Stripe\Customer;
@@ -27,7 +28,33 @@ use Stripe\StripeClient;
  */
 trait ManagesCustomer
 {
-    use HasStripeUsers;
+    /**
+     * Boot on delete method
+     */
+    public static function bootManagesCustomer()
+    {
+        static::deleting(function ($model) {
+            if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
+                return;
+            }
+
+            // Preserve the stripe users
+            $model->stripe_customers()->query()->update([
+                'owner_id'   => null,
+                'owner_type' => null
+            ]);
+        });
+    }
+
+    /**
+     * Get the stripe_customers
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphToMany
+     */
+    public function stripe_customers()
+    {
+        return $this->morphMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.customer', StripeCustomer::class), 'owner');
+    }
 
     /**
      * The stripe customer recently fetched or created
@@ -222,7 +249,7 @@ trait ManagesCustomer
     }
 
     /**
-     * Undocumented function
+     * Get the local stripe customer
      *
      * @param int $serviceIntegrationId
      * @return \BlackSpot\StripeMultipleAccounts\StripeCustomer
@@ -278,7 +305,7 @@ trait ManagesCustomer
      *
      * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
-    protected function assertCustomerExists($serviceIntegrationId = null)
+    public function assertCustomerExists($serviceIntegrationId = null)
     {
         $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
         
