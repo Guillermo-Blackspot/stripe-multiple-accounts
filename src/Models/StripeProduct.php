@@ -197,7 +197,7 @@ class StripeProduct extends Model
      */
     public function putStripeProduct(\Stripe\Product $stripeProduct)
     {
-        $this->stripeP$stripeProduct = $stripeProduct;
+        $this->stripeProduct = $stripeProduct;
 
         return $this;
     }

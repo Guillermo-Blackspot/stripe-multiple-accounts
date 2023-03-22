@@ -2,11 +2,14 @@
 
 namespace BlackSpot\StripeMultipleAccounts;
 
-use Exception;
-use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeProduct;
-use Illuminate\Support\Collection;
-use Illuminate\Database\Eloquent\Model as EloquentModel;
+use BlackSpot\ServiceIntegrationsContainer\Models\ServiceIntegration;
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeProduct;
+use BlackSpot\StripeMultipleAccounts\Models\StripeProduct;
+use Exception;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
+use Illuminate\Support\Collection;
 
 class ProductBuilder
 {
@@ -209,15 +212,24 @@ class ProductBuilder
         $product = $this->model->stripe_products()->create([
             'name'                   => $this->name,
             'current_price'          => $this->getCurrentPriceForPayload(),
-            'allows_recurring'       => $this->allowsRecurringForPayload(),
+            'allow_recurring'        => $this->allowsRecurringForPayload(),
             'service_integration_id' => $this->serviceIntegrationId,
             'active'                 => $this->active,
             'unit_label'             => $this->unitLabel,
             'metadata'               => [],
         ]);    
 
-        // Creating the product in stripe
-        $stripeProduct = $stripeClient->products->create($this->buildPayload($product));
+        try {
+            // Creating the product in stripe
+            $stripeProduct = $stripeClient->products->create($this->buildPayload($product));            
+        } catch (\Exception $err) {}
+
+        if ($stripeProduct == null) {
+            $stripeProduct = null;
+            $product->delete();
+            return null;
+        }
+
 
         // Associating the service product with the local model
         $product->update([            
@@ -225,7 +237,7 @@ class ProductBuilder
             'default_price_id' => $stripeProduct->default_price,
         ]);
 
-        $product->setAsStripeProduct($stripeProduct);
+        $product->putStripeProduct($stripeProduct);
 
         return $product;
     }
@@ -269,11 +281,11 @@ class ProductBuilder
     {
         return array_merge([
             'service_integration_id'   => $this->serviceIntegrationId,
-            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
+            'service_integration_type' => ServiceIntegrationsContainerProvider::getFromConfig('model', ServiceIntegration::class),
             'model_id'                 => $this->model->id,
             'model_type'               => get_class($this->model),
             'stripe_product_id'        => $product->id,
-            'stripe_product_type'      => config('stripe-multiple-accounts.relationship_models.products'),
+            'stripe_product_type'      => ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.product', StripeProduct::class),
         ], $this->metadata);
     }
     

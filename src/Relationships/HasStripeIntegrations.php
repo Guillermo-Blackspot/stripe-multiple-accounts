@@ -7,17 +7,17 @@ use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegration;
 trait HasStripeIntegrations
 {
  
-  /**
-   * Scope by name and short name of the stripe provider
-   *
-   * @param \Illuminate\Database\Eloquent\Builder $query
-   * @return \Illuminate\Database\Eloquent\Builder
-   */
-  public function scopeStripeService($query)
-  {
-    return $query->where('name', ServiceIntegration::STRIPE_SERVICE)
-              ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
-  }
+  // /**
+  //  * Scope by name and short name of the stripe provider
+  //  *
+  //  * @param \Illuminate\Database\Eloquent\Builder $query
+  //  * @return \Illuminate\Database\Eloquent\Builder
+  //  */
+  // public function scopeStripeService($query)
+  // {
+  //   return $query->where('name', ServiceIntegration::STRIPE_SERVICE)
+  //             ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
+  // }
 
 
   /**

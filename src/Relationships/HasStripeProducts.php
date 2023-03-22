@@ -56,8 +56,6 @@ trait HasStripeProducts
    */
   public function syncedWithStripe($serviceIntegrationId)
   {
-    $this->assertStripeProductExists($serviceIntegrationId);
-
     return $this->asLocalStripeProduct($serviceIntegrationId) !== null;
   }
 
@@ -169,11 +167,11 @@ trait HasStripeProducts
    */    
   public function asLocalStripeProduct($serviceIntegrationId)
   {
-    if (! isset($this->localStripeProductsFound[$serviceIntegrationId])) {
+    if (isset($this->localStripeProductsFound[$serviceIntegrationId])) {
       return $this->localStripeProductsFound[$serviceIntegrationId];
     }
 
-    $localProduct = $this->stripe_products()->serviceIntegration($serviceIntegrationId)->first();
+    $localProduct = $this->stripe_products()->serviceIntegration($serviceIntegrationId)->with('service_integration')->first();
 
     if (is_null($localProduct)) {
       unset($this->localStripeProductsFound[$serviceIntegrationId]);
