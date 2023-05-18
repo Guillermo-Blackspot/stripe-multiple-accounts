@@ -226,9 +226,8 @@ trait ManagesCustomer
             'customer_id'            => $stripeCustomer->id
         ]);
 
-        $localStripeCustomer
-            ->putServiceIntegrationFound($serviceIntegration)
-            ->putStripeCustomer($stripeCustomer);
+        $localStripeCustomer->putServiceIntegrationFound($serviceIntegration);
+        $localStripeCustomer->putStripeCustomer($stripeCustomer);
 
         return $stripeCustomer;
     }
