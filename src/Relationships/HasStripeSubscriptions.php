@@ -2,6 +2,9 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
+use BlackSpot\StripeMultipleAccounts\Models\StripeSubscription;
+
 trait HasStripeSubscriptions
 {
   /**
@@ -13,7 +16,18 @@ trait HasStripeSubscriptions
         if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
             return;
         }
+
         $model->stripe_subscriptions()->delete();
+        
+        $model->system_subscriptions()
+              ->where('status', '!=', SystemSubscription::STATUS_UNLINKED)
+              ->where('status', '!=', SystemSubscription::STATUS_CANCELED)
+              ->update([
+                'service_integration_id' => null,
+                'status' => SystemSubscription::STATUS_UNLINKED
+              ]);
+
+      $model->system_payment_intents()->update(['service_integration_id' => null]);
     });
   }
 
@@ -24,9 +38,11 @@ trait HasStripeSubscriptions
    *
    * @return bool
    */
-  public function isSubscribedWithStripeTo($identifier)
+  public function isSubscribedWithStripeTo($serviceIntegrationId = null, $identifier)
   {
-    return $this->stripe_subscriptions()->where('identified_by', $identifier)->exists();
+    $serviceIntegrationId = $this->getStripeServiceIntegration($serviceIntegrationId)->id;
+
+    return $this->stripe_subscriptions()->serviceIntegration($serviceIntegrationId)->where('identified_by', $identifier)->exists();
   }
 
   /**
@@ -35,9 +51,11 @@ trait HasStripeSubscriptions
    *
    * @return BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription
    */
-  public function findSubscriptionByIdentifier($identifier, $with = [])
+  public function findStripeSubscriptionByIdentifier($serviceIntegrationId = null, $identifier, $with = [])
   {
-    return $this->stripe_subscriptions()->with($with)->where('identified_by', $identifier)->first();
+    $serviceIntegrationId = $this->getStripeServiceIntegration($serviceIntegrationId)->id;
+
+    return $this->stripe_subscriptions()->serviceIntegration($serviceIntegrationId)->with($with)->where('identified_by', $identifier)->first();
   }
 
 
@@ -48,6 +66,6 @@ trait HasStripeSubscriptions
   */
   public function stripe_subscriptions()
   {
-    return $this->morphMany(config('stripe-multiple-accounts.relationship_models.subscriptions'), 'owner');
+    return $this->morphMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.subscription', StripeSubscription::class), 'owner');
   }
 }

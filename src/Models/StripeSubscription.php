@@ -11,6 +11,8 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
 use Stripe\Subscription;
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
+use BlackSpot\StripeMultipleAccounts\Models\StripeSubscriptionItem;
 
 class StripeSubscription extends Model
 {
@@ -485,11 +487,11 @@ class StripeSubscription extends Model
 
     public function service_integration()
     {
-        return $this->belongsTo(config('stripe-multiple-accounts.relationship_models.stripe_accounts'), 'service_integration_id');
+        return $this->belongsTo(ServiceIntegrationsContainerProvider::getFromConfig('model', ServiceIntegration::class), 'service_integration_id');
     }
 
     public function stripe_subscription_items()
-    {
-        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscription_items'), 'stripe_subscription_id');
+    {        
+        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.subscription_item', StripeSubscriptionItem::class), 'stripe_subscription_id');
     }    
 }

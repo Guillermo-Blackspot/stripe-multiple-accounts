@@ -39,7 +39,7 @@ trait ManagesCustomer
             }
 
             // Preserve the stripe users
-            $model->stripe_customers()->query()->update([
+            $model->stripe_customers()->update([
                 'owner_id'   => null,
                 'owner_type' => null
             ]);

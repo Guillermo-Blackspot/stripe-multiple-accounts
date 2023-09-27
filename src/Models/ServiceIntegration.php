@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
+use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
+use BlackSpot\StripeMultipleAccounts\Models\StripeProduct;
+use BlackSpot\StripeMultipleAccounts\Models\StripeSubscription;
+use BlackSpot\StripeMultipleAccounts\Models\StripeSubscriptionItem;
 
 class ServiceIntegration extends Model
 {
@@ -79,17 +83,17 @@ class ServiceIntegration extends Model
 
     public function stripe_customers()
     {
-        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.customers'), 'service_integration_id');
+        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.customer', StripeCustomer::class), 'service_integration_id');
     }
     
     public function service_integration_products()
     {
-        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.products'), 'service_integration_id');
+        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.product', StripeProduct::class), 'service_integration_id');
     }
 
     public function service_integration_subscriptions()
     {
-        return $this->hasMany(config('stripe-multiple-accounts.relationship_models.subscriptions'), 'service_integration_id');
+        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.subscription', StripeSubscription::class), 'service_integration_id');
     }
 
     /**
