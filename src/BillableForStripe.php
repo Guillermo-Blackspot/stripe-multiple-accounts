@@ -19,8 +19,8 @@ trait BillableForStripe
     use PerformsCharges;
     
     /// Faltarian las suscriptiones
-    use HasStripeSubscriptions;
-    use ManagesSubscriptions;
+    // use HasStripeSubscriptions;
+    // use ManagesSubscriptions;
 
     public function clearStripeBillableCache()
     {
