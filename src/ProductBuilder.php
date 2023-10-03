@@ -207,7 +207,7 @@ class ProductBuilder
      */
     public function create()
     {
-        $stripeClient = $this->getStripeClientConnection($this->serviceIntegrationId);
+        $stripeClient = $this->getStripeClient($this->serviceIntegrationId);
 
         $product = $this->model->stripe_products()->create([
             'name'                   => $this->name,

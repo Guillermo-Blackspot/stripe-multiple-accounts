@@ -341,7 +341,7 @@ class StripeSubscription extends Model
      */
     public function cancelNow()
     {        
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->cancel($this->subscription_id, [
+        $stripeSubscription = $this->getStripeClient()->subscriptions->cancel($this->subscription_id, [
             'prorate' => $this->prorateBehavior() === 'create_prorations',
         ]);
 
@@ -359,7 +359,7 @@ class StripeSubscription extends Model
      */
     public function cancelNowAndInvoice()
     {
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->cancel($this->subscription_id, [
+        $stripeSubscription = $this->getStripeClient()->subscriptions->cancel($this->subscription_id, [
             'invoice_now' => true,
             'prorate' => $this->prorateBehavior() === 'create_prorations',
         ]);
@@ -424,7 +424,7 @@ class StripeSubscription extends Model
      */
     public function updateStripeSubscription(array $options = [])
     {
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->update(
+        $stripeSubscription = $this->getStripeClient()->subscriptions->update(
             $this->subscription_id, $options
         );
 
@@ -443,7 +443,7 @@ class StripeSubscription extends Model
             return $this->recentlyStripeSubscrtionFetched;
         }
 
-        $stripeSubscription = $this->getStripeClientConnection()->subscriptions->retrieve(
+        $stripeSubscription = $this->getStripeClient()->subscriptions->retrieve(
             $this->subscription_id, ['expand' => $expand]
         );
 

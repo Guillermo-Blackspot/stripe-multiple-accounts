@@ -91,7 +91,7 @@ All available methods
 
     // ManagesAuthCredentials.php
 
-    $user->getStripeClientConnection($serviceIntegrationId);            // nullable
+    $user->getStripeClient($serviceIntegrationId);            // nullable
     $user->getStripeServiceIntegration($serviceIntegrationId);          // nullable
     $user->assertStripeServiceIntegrationExists($serviceIntegrationId); // terminal
     $user->getStripeSecretKey($serviceIntegrationId);            // nullable

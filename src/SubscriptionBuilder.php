@@ -2,16 +2,19 @@
 
 namespace BlackSpot\StripeMultipleAccounts;
 
+use BlackSpot\StripeMultipleAccounts\Concerns\HandlesPaymentFailures;
 use BlackSpot\StripeMultipleAccounts\Concerns\InteractsWithPaymentBehavior;
 use BlackSpot\StripeMultipleAccounts\Concerns\Prorates;
 use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationProduct;
-use BlackSpot\StripeMultipleAccounts\Concerns\HandlesPaymentFailures;
+use BlackSpot\StripeMultipleAccounts\SubscriptionUtils;
+use BlackSpot\SystemCharges\Exceptions\InvalidStripeSubscription;
 use Carbon\Carbon;
 use Closure;
 use DateTimeInterface;
 use Exception;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 use Stripe\Subscription as StripeSubscription;
 
 class SubscriptionBuilder
@@ -31,13 +34,6 @@ class SubscriptionBuilder
     protected $owner;
     
     /**
-     * The service integration id
-     *
-     * @var int
-     */
-    protected $serviceIntegrationId;
-
-    /**
      * The subscription identifier
      * 
      * It needs to be unique by user
@@ -46,7 +42,13 @@ class SubscriptionBuilder
      * @var string
      */
     protected $subscriptionIdentifier;
-
+    
+    /**
+     * The service integration id
+     *
+     * @var int
+     */
+    protected $serviceIntegrationId;
 
     /**
      * The subscription name
@@ -76,7 +78,7 @@ class SubscriptionBuilder
      *
      * @var string
      */
-    protected $description = '';
+    protected $description = null;
 
     /**
      * The curency to apply to the subscription
@@ -88,7 +90,7 @@ class SubscriptionBuilder
     /**
      * The date on which the billing cycle should be anchored.
      *
-     * @var int|null
+     * @var \DateTimeInterface|null
      */
     protected $billingCycleAnchor = null;
 
@@ -121,6 +123,31 @@ class SubscriptionBuilder
     protected $callbackToMapItemsBefore = null;
 
     /**
+     * Define the days or date when the product still active
+     *
+     * @var int|\DateTimeInterface
+     */
+    protected $keepProductsActiveUntil = null;
+
+    /**
+     * Recurring interval count to combine with the recurring interval
+     * 
+     * every $one month , every $two days, etc..
+     *
+     * @var int
+     */
+    protected $recurringIntervalCount = 1;
+
+    /**
+     * Recurring interval
+     * 
+     * day, week, month or year
+     * 
+     * @var string
+     */
+    protected $recurringInterval = null;
+
+    /**
      * Constructor
      * 
      * @param \BlackSpot\StripeMultipleAccounts\Billable|\Illuminate\Database\Eloquent\Model  $owner
@@ -135,13 +162,15 @@ class SubscriptionBuilder
         $this->subscriptionIdentifier = $identifier;
         $this->name                   = $name;
         $this->items                  = $items instanceof EloquentModel ? Collection::make([$items]) : $items;
+        $this->serviceIntegrationId   = $this->owner->getSystemChargesServiceIntegration($serviceIntegrationId)->id;
+        $this->billingCycleAnchor     = Date::now();
 
-        if ($this->owner->getStripeServiceIntegration($serviceIntegrationId) == null){
-            return ;
+        $existingRelatedSubscription = $this->owner->findStripeSubscriptionByIdentifier($this->serviceIntegrationId, $this->subscriptionIdentifier);
+
+        if ($existingRelatedSubscription) {
+            return $existingRelatedSubscription; // exists
         }
 
-        $this->serviceIntegrationId = $serviceIntegrationId ?? $this->owner->getStripeServiceIntegration()->id;
-        
         if (! $this->validItems()) {
             return ;
         }        
@@ -155,15 +184,9 @@ class SubscriptionBuilder
     protected function validItems()
     {
         return $this->items
-                    ->filter(function($item){
-                        return $item->allow_recurring == true;
-                    })
-                    ->filter(function($item){
-                        return $item->default_price_id != null;
-                    })
-                    ->filter(function($item){
-                        return $item->service_integration_id == $this->serviceIntegrationId;
-                    })
+                    ->filter(fn ($item) => $item->allow_recurring == true)
+                    ->filter(fn ($item) => $item->default_price_id != null)
+                    ->filter(fn ($item) => $item->service_integration_id == $this->serviceIntegrationId)
                     ->isNotEmpty();
     }
 
@@ -186,17 +209,27 @@ class SubscriptionBuilder
      *
      * @param  \DateTimeInterface|int  $date
      * @return $this
+     * 
+     * @throws InvalidStripeSubscription
      */
     public function anchorBillingCycleOn($date)
     {
-        if ($date instanceof DateTimeInterface) {
-            $date = $date->getTimestamp();
+        if (! $date) {
+            $date = Date::now();
         }
 
+        if (! ($date instanceof DateTimeInterface)) {
+            $date = Date::parse($date);
+        }
+
+        if ($date->isPast() && !$date->isToday()) {
+            throw InvalidStripeSubscription::pastDate($this, $date);
+        }
+    
         $this->billingCycleAnchor = $date;
 
         return $this;
-    }
+    }    
 
     /**
      * The description to apply to a new subscription.
@@ -245,9 +278,9 @@ class SubscriptionBuilder
      * @return $this
      */
     public function cancelAt($date)
-    {
-        if ($date instanceof DateTimeInterface) {
-            $date = $date->getTimestamp();
+    {       
+        if ($date != null && ! ($date instanceof \DateTimeInterface)) {
+            $date = Date::parse($date);
         }
 
         $this->cancelAt = $date;
@@ -263,9 +296,7 @@ class SubscriptionBuilder
      */
     public function trialDays($trialDays)
     {
-        if ($trialDays != null || $trialDays != 0) {
-            $this->trialExpires = Carbon::now()->addDays($trialDays);
-        }
+        $this->trialExpires = (int) $trialDays;
 
         return $this;
     }
@@ -278,7 +309,65 @@ class SubscriptionBuilder
      */
     public function trialUntil($trialUntil)
     {
+        if ($trialUntil != null && ! ($trialUntil instanceof \DateTimeInterface)) {
+            $trialUntil = Date::parse($trialUntil);
+        }
+
         $this->trialExpires = $trialUntil;
+
+        return $this;
+    }
+
+    /**
+     * Define the days when the products still active after the subscription is cancelled of ended
+     * 
+     * Days or a concrete date, when null is received the products still active forever
+     * 
+     * @param null|int|\DateTimeInterface $daysOrDate
+     * 
+     * @return $this
+     */
+    public function keepProductsActiveUntil($daysOrDate)
+    {
+        if (is_numeric($daysOrDate)) {
+            $daysOrDate = (int) $daysOrDate;
+        }else if ($daysOrDate !== null) {
+            $daysOrDate = Date::parse($daysOrDate);
+        }
+
+        $this->keepProductsActiveUntil = $daysOrDate;
+
+        return $this;
+    }
+
+    /**
+     * Interval
+     *
+     * @param int $interval
+     * @return $this
+     * 
+     * @throws InvalidStripeSubscription
+     */
+    public function interval($interval)
+    {
+        if (!in_array($interval, ['day','week','month','year'])) {
+            throw InvalidStripeSubscription::unknownInterval($this, $interval);
+        }
+
+        $this->recurringInterval = $interval;
+
+        return $this;
+    }
+
+    /**
+     * Interval count
+     *
+     * @param int $intervalCount
+     * @return $this
+     */
+    public function intervalCount($intervalCount)
+    {
+        $this->recurringIntervalCount = (int) ($intervalCount ?? 1);
 
         return $this;
     }
@@ -318,19 +407,19 @@ class SubscriptionBuilder
      * @param  string  $paymentMethodId
      * @param  array  $customerOptions
      * @param  array  $subscriptionOptions
-     * @return \Blackspot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription|null
+     * @return \BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription|null
      *
-     * @throws \Blackspot\StripeMultipleAccounts\Exceptions\IncompleteStripePayment
+     * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\IncompleteStripePayment|\BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeSubscription|\BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration|\BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeCustomer
      */
     public function create($paymentMethodId = null, array $customerOptions = [], array $subscriptionOptions = [])
     {
         if (empty($this->items)) {
-            throw new Exception('At least one price is required when starting subscriptions.');
+            throw InvalidStripeSubscription::emptyItems($this);
         }
 
         $stripeCustomer = $this->getStripeCustomer($paymentMethodId, $customerOptions);
 
-        $stripeSubscription = $this->owner->getStripeClientConnection($this->serviceIntegrationId)->subscriptions->create(array_merge(
+        $stripeSubscription = $this->owner->getStripeClient($this->serviceIntegrationId)->subscriptions->create(array_merge(
             ['customer' => $stripeCustomer->id], $this->buildPayload(), $subscriptionOptions
         ));
         
@@ -349,24 +438,24 @@ class SubscriptionBuilder
      */
     protected function createSubscription(StripeSubscription $stripeSubscription)
     {
-        $firstItem = $stripeSubscription->items->first();
-        $isSinglePrice = $stripeSubscription->items->count() === 1;
+        // $firstItem     = $stripeSubscription->items->first();
+        // $isSinglePrice = $stripeSubscription->items->count() === 1;
 
         /** @var \BlackSpot\StripeMultipleAccounts\Models\ServiceIntegrationSubscription $subscription */
         $subscription = $this->owner->stripe_subscriptions()->create([
-            'identified_by'          => $this->subscriptionIdentifier,
-            'name'                   => $this->name,
-            'customer_id'            => $stripeSubscription->customer,
-            'subscription_id'        => $stripeSubscription->id,
-            'status'                 => $stripeSubscription->status,
-            'trial_ends_at'          => ! $this->skipTrial ? $this->trialExpires : null,
-            'billing_cycle_anchor'   => $stripeSubscription->current_period_start,
-            'current_period_start'   => $stripeSubscription->current_period_start,
-            'current_period_ends_at' => $stripeSubscription->current_period_end,            
-            'service_integration_id' => $this->serviceIntegrationId,
+            'identified_by'              => $this->subscriptionIdentifier,
+            'name'                       => $this->name,
+            'customer_id'                => $stripeSubscription->customer,
+            'subscription_id'            => $stripeSubscription->id,
+            'status'                     => $stripeSubscription->status,
+            'trial_ends_at'              => ! $this->skipTrial ? $this->trialExpires : null,
+            'billing_cycle_anchor'       => Date::parse($stripeSubscription->current_period_start),
+            'current_period_start'       => Date::parse($stripeSubscription->current_period_start),
+            'current_period_ends_at'     => Date::parse($stripeSubscription->current_period_end),            
+            'service_integration_id'     => $this->serviceIntegrationId,
+            'keep_products_active_until' => $this->getKeepProductsActiveUntilForPayload(),
             //'price_id'        => $isSinglePrice ? $firstItem->price->id : null,
         ]);
-
         
         /** @var \Stripe\SubscriptionItem $item */
         foreach ($stripeSubscription->items as $item) {
@@ -411,11 +500,11 @@ class SubscriptionBuilder
         $payload = array_filter([
             'description'          => $this->description,            
             'currency'             => $this->currency,
-            'billing_cycle_anchor' => $this->billingCycleAnchor,
+            'billing_cycle_anchor' => $this->billingCycleAnchor->getTimestamp(),
             'expand'               => ['latest_invoice.payment_intent'],
             'metadata'             => $this->getMetadataForPayload(),
             'items'                => $this->getItemsForPayload(),
-            'trial_end'            => $this->getTrialEndForPayload(),
+            'trial_end'            => $this->getTrialEndsAtForPayload(),
             'cancel_at'            => $this->getCancelAtForPayload(),
             'off_session'          => true,
             //'automatic_tax'       => $this->automaticTaxPayload(),
@@ -441,20 +530,18 @@ class SubscriptionBuilder
     {
         $items = $this->items;
 
-        if ($this->callbackToMapItemsBefore instanceof Closure) {
-            $items = $items->map($this->callbackToMapItemsBefore);
-        }
+        // if ($this->callbackToMapItemsBefore instanceof Closure) {
+        //     $items = $items->map($this->callbackToMapItemsBefore);
+        // }
 
         return $items->map(function($item){
                     $payload = [
                         'price' => $item['default_price_id'],
                         'metadata' => [
-                            'stripe_product_id'        => $item->id,
-                            'stripe_product_type'      => get_class($item),                            
-                            'model_id'                 => $item->model_id,          
-                            'model_type'               => $item->model_type,
-                            'service_integration_id'   => $this->serviceIntegrationId,
-                            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
+                            'stripe_product_id'   => $item->id,
+                            'stripe_product_type' => get_class($item),                            
+                            'model_id'            => $item->model_id,          
+                            'model_type'          => $item->model_type,
                         ]
                     ];
 
@@ -471,17 +558,19 @@ class SubscriptionBuilder
     }
 
     /**
-     * Get the date when the subscription must be canceled
+     * Get the cancel date 
+     * 
+     * calculates from the expected invoices or get defined by customer
      *
-     * @return int|string|null
+     * @return null|\DateTimeInterface
      */
     protected function getCancelAtForPayload()
     {
-        if ($this->cancelAt instanceof DateTimeInterface) {
+        if ($this->cancelAt) {
             return $this->cancelAt->getTimestamp();
         }
 
-        return $this->cancelAt;
+        return null;
     }
 
     /**
@@ -489,18 +578,51 @@ class SubscriptionBuilder
      *
      * @return int|string|null
      */
-    protected function getTrialEndForPayload()
+    protected function getTrialEndsAtForPayload()
     {
         if ($this->skipTrial) {
-            return 'now';
+            return 'now'; // has not trial days
         }
 
-        if ($this->trialExpires instanceof DateTimeInterface) {
-            return $this->trialExpires->getTimestamp();
+        if (is_int($this->trialExpires)) {
+            
+            return $this->billingCycleAnchor->copy()->addDays($this->trialExpires)->getTimestamp(); // For days (int) Determine from the billing cycle anchor
+
+        }else if ($this->trialExpires instanceof DateTimeInterface) {           
+            
+            if ($this->trialExpires->gt($this->billingCycleAnchor)){    
+                return $this->trialExpires->getTimestamp();
+            }
         }
 
-        return $this->trialExpires;
+        return null;
     }    
+
+    /**
+     * Determine the date until the related products still active
+     *
+     * @return DateTimeInterface|null
+     */
+    protected function getKeepProductsActiveUntilForPayload()
+    {
+        if ($this->keepProductsActiveUntil === null) {
+            return null;
+        }
+
+        if (! $this->cancelAt) {
+            return null;
+        }
+
+        if (is_int($this->keepProductsActiveUntil)) {
+            return $this->cancelAt->copy()->addDays($this->keepProductsActiveUntil);            
+        }
+            
+        if ($this->keepProductsActiveUntil->gt($this->cancelAt)) {
+            return $this->keepProductsActiveUntil;
+        }
+
+        return $this->cancelAt; // At the same time that is canceled
+    }
 
     /**
      * Get the metadata for the Stripe payload.
@@ -510,10 +632,8 @@ class SubscriptionBuilder
     protected function getMetadataForPayload()
     {
         return array_merge($this->metadata, [
-            'owner_id'                 => $this->owner->id,
-            'owner_type'               => get_class($this->owner),
-            'service_integration_id'   => $this->serviceIntegrationId,
-            'service_integration_type' => config('stripe-multiple-accounts.relationship_models.stripe_accounts'),
+            'owner_id'   => $this->owner->id,
+            'owner_type' => get_class($this->owner),
         ]);
     }
 

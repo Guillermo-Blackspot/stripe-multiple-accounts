@@ -2,7 +2,7 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
-use BlackSpot\ServiceIntegrationsContainer\Models\ServiceIntegration;
+use BlackSpot\ServiceIntegrationsContainer\ServiceIntegration;
 use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeCustomer;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
@@ -18,13 +18,17 @@ use Stripe\StripeClient;
  * @property $stripeCustomerRecentlyFetched \Stripe\Customer|null
  * @property $stripeCustomerIdRecentlyFetched \Stripe\Customer|null
  * 
- * @method stripeCustomerExists($serviceIntegrationId = null): bool
- * 
- * @method relateCustomerWithStripeAccount($serviceIntegrationId = null, $opts = []): \Stripe\Customer|null
- * @method getRelatedStripeCustomer($serviceIntegrationId = null, $opts = []): \Stripe\Customer|null
- * @method getRelatedStripeCustomerId($serviceIntegrationId = null): null|string
- * @method createOrGetRelatedStripeCustomer($serviceIntegrationId = null, $opts = []): \Stripe\Customer|null
- * @method createStripeCustomer($serviceIntegrationId = null, $opts = []): \Stripe\Customer|null
+ * @method public function stripe_customers()
+ * @method public function stripeCustomerExists($serviceIntegrationId = null)
+ * @method public function getStripeCustomer($serviceIntegrationId = null, array $expand = [])
+ * @method public function getStripeCustomerId($serviceIntegrationId = null)
+ * @method public function createStripeCustomerIfNotExists($serviceIntegrationId = null, array $opts = [])
+ * @method public function createOrGetStripeCustomer($serviceIntegrationId = null, array $opts = [])
+ * @method public function createStripeCustomer($serviceIntegrationId = null, array $opts = [])
+ * @method public function updateStripeCustomer($serviceIntegrationId = null, array $opts = [])
+ * @method public function asLocalStripeCustomer($serviceIntegrationId = null)
+ * @method protected function getFromLocalDatabaseStripeCustomer($serviceIntegrationId = null)
+ * @method public function assertStripeCustomerExists($serviceIntegrationId = null)
  */
 trait ManagesCustomer
 {
@@ -100,7 +104,7 @@ trait ManagesCustomer
      * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
     public function getStripeCustomer($serviceIntegrationId = null, array $expand = [])
-    {            
+    {
         return $this->asLocalStripeCustomer($serviceIntegrationId)->asStripe($expand);
     }
         
@@ -200,7 +204,7 @@ trait ManagesCustomer
 
         $serviceIntegration   = $this->getStripeServiceIntegration($serviceIntegrationId);
         $serviceIntegrationId = $serviceIntegration->id;
-        $stripe               = $this->getStripeClientConnection($serviceIntegrationId);
+        $stripe               = $this->getStripeClient($serviceIntegrationId);
     
         if (empty($opts)) {
             if (method_exists($this, 'getStripeCustomerInformation')) {
@@ -257,7 +261,7 @@ trait ManagesCustomer
      */    
     public function asLocalStripeCustomer($serviceIntegrationId = null)
     {
-        $this->assertCustomerExists($serviceIntegrationId);
+        $this->assertStripeCustomerExists($serviceIntegrationId);
 
         $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
 
@@ -304,7 +308,7 @@ trait ManagesCustomer
      *
      * @throws \InvalidStripeServiceIntegration|InvalidStripeCustomer
      */
-    public function assertCustomerExists($serviceIntegrationId = null)
+    public function assertStripeCustomerExists($serviceIntegrationId = null)
     {
         $localStripeCustomer = $this->getFromLocalDatabaseStripeCustomer($serviceIntegrationId);
         

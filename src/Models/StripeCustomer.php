@@ -2,13 +2,12 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Models;
 
-use BlackSpot\ServiceIntegrationsContainer\Models\ServiceIntegration;
+use BlackSpot\ServiceIntegrationsContainer\ServiceIntegration;
 use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use BlackSpot\StripeMultipleAccounts\Concerns\ManagesAuthCredentials;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeCustomer;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
 use BlackSpot\StripeMultipleAccounts\Relationships\BelongsToServiceIntegration;
-use BlackSpot\StripeMultipleAccounts\Relationships\MorphToOwner;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Stripe\PaymentMethod;
@@ -17,7 +16,6 @@ class StripeCustomer extends Model
 {
     use ManagesAuthCredentials; // FindBy the related "service_integration_id"
     use BelongsToServiceIntegration;
-    use MorphToOwner;    
 
     /** 
      * The table associated with the model.
@@ -79,7 +77,7 @@ class StripeCustomer extends Model
             }
         }
         
-        $stripe = $this->getStripeClientConnection($this->service_integration_id);
+        $stripe = $this->getStripeClient($this->service_integration_id);
 
         return $this->stripeCustomer = $stripe->customers->retrieve($this->customer_id, ['expand' => $expand]);
     }
@@ -100,7 +98,7 @@ class StripeCustomer extends Model
     {
         $this->assertExistsAsStripe();
         
-        return $this->stripeCustomer = $this->getStripeClientConnection($this->service_integration_id)->customers->update(
+        return $this->stripeCustomer = $this->getStripeClient($this->service_integration_id)->customers->update(
             $this->customer_id, $opts
         );
     }
@@ -115,14 +113,14 @@ class StripeCustomer extends Model
 
         $opts['source'] = $tokenId;
 
-        return $this->getStripeClientConnection($this->service_integration_id)->customers->createSource($this->customer_id, $opts);
+        return $this->getStripeClient($this->service_integration_id)->customers->createSource($this->customer_id, $opts);
     }
 
     public function deleteStripePaymentMethodSource($sourceId, array $opts = [])
     {
         $this->assertExistsAsStripe();
 
-        return $this->getStripeClientConnection($this->service_integration_id)->customers->deleteSource($this->customer_id, $sourceId, null, $opts);    
+        return $this->getStripeClient($this->service_integration_id)->customers->deleteSource($this->customer_id, $sourceId, null, $opts);    
     }
 
     /**
@@ -137,28 +135,28 @@ class StripeCustomer extends Model
         // Default payment_method_types = ['card']
         $opts['customer'] = $this->customer_id;
         
-        return $this->getStripeClientConnection($this->service_integration_id)->setupIntents->create($opts);    
+        return $this->getStripeClient($this->service_integration_id)->setupIntents->create($opts);    
     }
     
     public function getStripePaymentMethods($type = 'card')
     {
         $this->assertExistsAsStripe();
 
-        return $this->getStripeClientConnection($this->service_integration_id)->customers->allPaymentMethods($this->customer_id, ['type' => $type]);
+        return $this->getStripeClient($this->service_integration_id)->customers->allPaymentMethods($this->customer_id, ['type' => $type]);
     }
 
     public function addStripePaymentMethod($paymentMethodId)
     {
         $this->assertExistsAsStripe();
 
-        return $this->getStripeClientConnection($this->service_integration_id)->paymentMethods->attach($paymentMethodId, ['customer' => $this->customer_id]);
+        return $this->getStripeClient($this->service_integration_id)->paymentMethods->attach($paymentMethodId, ['customer' => $this->customer_id]);
     }
 
     public function deleteStripePaymentMethod($paymentMethodId)
     {
         $this->assertExistsAsStripe();
 
-        $this->getStripeClientConnection($this->service_integration_id)->paymentMethods->detach($paymentMethodId);
+        $this->getStripeClient($this->service_integration_id)->paymentMethods->detach($paymentMethodId);
     }
 
     public function getOrAddStripePaymentMethod($paymentMethodId, $type = 'card')
@@ -240,14 +238,14 @@ class StripeCustomer extends Model
         $opts['amount']   = $amount;
         $opts['customer'] = $this->customer_id;
 
-        return $this->getStripeClientConnection($this->service_integration_id)->paymentIntents->create($opts);
+        return $this->getStripeClient($this->service_integration_id)->paymentIntents->create($opts);
     }
 
     public function refundStripePaymentIntent($paymentIntentId, array $opts = [])
     {
         $this->assertExistsAsStripe();  
 
-        return $this->getStripeClientConnection($this->service_integration_id)->refunds->create(array_merge(
+        return $this->getStripeClient($this->service_integration_id)->refunds->create(array_merge(
             ['payment_intent' => $paymentIntentId], $opts
         ));
     }    
@@ -256,7 +254,7 @@ class StripeCustomer extends Model
     {
         $this->assertExistsAsStripe();  
 
-        return $this->getStripeClientConnection($this->service_integration_id)->paymentIntents->retrieve($paymentIntentId);
+        return $this->getStripeClient($this->service_integration_id)->paymentIntents->retrieve($paymentIntentId);
     }
 
     /**
@@ -290,6 +288,17 @@ class StripeCustomer extends Model
             throw InvalidStripeCustomer::notYetCreated($this);
         }
 
-        $this->getStripeClientConnection($this->service_integration_id); 
+        $this->getStripeClient($this->service_integration_id); 
     }
+
+
+    /**
+     * Get the owner of the stripe customer
+     *
+     * @return void
+     */
+    public function owner()
+    {
+        return $this->morphTo('owner');
+    }    
 }

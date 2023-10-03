@@ -14,7 +14,7 @@ trait BillableForStripe
 {
     use ManagesAuthCredentials;
     use ManagesCustomer;
-    use ManagesPaymentMethodSources;
+    // use ManagesPaymentMethodSources;
     use ManagesPaymentMethods;
     use PerformsCharges;
     

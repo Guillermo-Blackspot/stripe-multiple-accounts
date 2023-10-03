@@ -94,7 +94,7 @@ class StripeProduct extends Model
             return $stripeCustomer;
         }
 
-        return $this->stripeProduct = $this->getStripeClientConnection($this->service_integration_id)->products->retrieve($this->product_id);
+        return $this->stripeProduct = $this->getStripeClient($this->service_integration_id)->products->retrieve($this->product_id);
     }
 
     /**
@@ -112,7 +112,7 @@ class StripeProduct extends Model
     {
         $this->assertExistsAsStripe();
 
-        $stripeProduct = $this->getStripeClientConnection($this->service_integration_id)->products->update($this->product_id, (array) $opts);
+        $stripeProduct = $this->getStripeClient($this->service_integration_id)->products->update($this->product_id, (array) $opts);
 
         $this->fill([
             'name'             => $stripeProduct->name,
@@ -145,7 +145,7 @@ class StripeProduct extends Model
     {        
         $this->assertExistsAsStripe();
 
-        $stripeProduct = $this->getStripeClientConnection($this->service_integration_id)->products->update($this->product_id, [
+        $stripeProduct = $this->getStripeClient($this->service_integration_id)->products->update($this->product_id, [
             'name'   => $this->name . ' (Deleted from PHP API) ',
             'active' => false
         ]);
@@ -217,7 +217,7 @@ class StripeProduct extends Model
             throw InvalidStripeProduct::notYetCreated($this);
         }
 
-        $this->getStripeClientConnection($this->service_integration_id); 
+        $this->getStripeClient($this->service_integration_id); 
     }
 
 

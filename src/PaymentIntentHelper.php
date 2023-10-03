@@ -140,7 +140,7 @@ class PaymentIntentHelper implements Arrayable, Jsonable, JsonSerializable
     public function asStripePaymentIntent(array $expand = [])
     {
         if ($expand) {            
-            return $this->getStripeClientConnection($this->serviceIntegrationId)->paymentIntents->retrieve(
+            return $this->getStripeClient($this->serviceIntegrationId)->paymentIntents->retrieve(
                 $this->paymentIntent->id, ['expand' => $expand]
             );
         }
@@ -150,7 +150,7 @@ class PaymentIntentHelper implements Arrayable, Jsonable, JsonSerializable
 
     public function confirm($opts = [])
     {
-        return $this->getStripeClientConnection($this->serviceIntegrationId)->paymentIntents->confirm($this->paymentIntent->id, $opts);
+        return $this->getStripeClient($this->serviceIntegrationId)->paymentIntents->confirm($this->paymentIntent->id, $opts);
     }
 
 

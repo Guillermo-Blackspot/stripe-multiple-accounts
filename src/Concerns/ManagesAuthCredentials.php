@@ -2,8 +2,8 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
-use BlackSpot\ServiceIntegrationsContainer\Concerns\ServiceIntegrationFinder;
-use BlackSpot\ServiceIntegrationsContainer\Models\ServiceIntegration;
+use BlackSpot\ServiceIntegrationsContainer\ServiceIntegrationFinder;
+use BlackSpot\ServiceIntegrationsContainer\ServiceIntegration;
 use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
 use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use Illuminate\Support\Facades\DB;
@@ -14,8 +14,8 @@ use Stripe\StripeClient;
  * 
  * @method getStripeServiceIntegrationQuery($serviceIntegrationId = null)
  * @method getStripeServiceIntegration($serviceIntegrationId = null)
- * @method assertStripeServiceIntegrationExists($serviceIntegrationId = null)
- * @method getStripeClientConnection($serviceIntegrationId = null)
+ * @method assertStripeServiceExists($serviceIntegrationId = null)
+ * @method getStripeClient($serviceIntegrationId = null)
  * @method getStripeSecretKey($serviceIntegrationId = null)
  * @method getStripePublicKey($serviceIntegrationId = null)
  */
@@ -32,9 +32,12 @@ trait ManagesAuthCredentials
      */
     protected function getStripeServiceIntegrationQuery($serviceIntegrationId = null)
     {
-        return $this->getServiceIntegrationQueryFinder($serviceIntegrationId, 'stripe')
-                    ->where('name', ServiceIntegration::STRIPE_SERVICE)
-                    ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
+        return $this->getServiceIntegrationQueryFinder($serviceIntegrationId, 'stripe', function (&$query) {
+            $query->where([
+                'name'       => ServiceIntegration::STRIPE_SERVICE,
+                'short_name' => ServiceIntegration::STRIPE_SERVICE_SHORT_NAME,
+            ]);
+        });
     }
 
     /**
@@ -53,28 +56,23 @@ trait ManagesAuthCredentials
             return $this->getServiceIntegrationLoaded($serviceIntegrationId);
         }
 
-        $stripeIntegration = $this->resolveServiceIntegrationFromInstance($this, $serviceIntegrationId);
+        $service = $this->resolveServiceIntegrationFromInstance($this, $serviceIntegrationId) ?? $this->getStripeServiceIntegrationQuery($serviceIntegrationId)->first();
         
-        // Try to resolve
-        if (is_null($stripeIntegration)){
-            $stripeIntegration = $this->getStripeServiceIntegrationQuery($serviceIntegrationId)->first();
-        }
-
-        if (is_null($stripeIntegration)) {
+        if ($service == null) {
             throw InvalidStripeServiceIntegration::notYetCreated($this);
         }
 
         $payloadColumn = ServiceIntegrationsContainerProvider::getFromConfig('payload_colum','payload');
 
-        if (! isset($stripeIntegration->{$payloadColumn})) {
+        if (! isset($service->{$payloadColumn})) {
             throw InvalidStripeServiceIntegration::payloadColumnNotFound($this, $payloadColumn);
         }
 
-        $payloadValue = $stripeIntegration->{$payloadColumn};
+        $payloadValue = $service->{$payloadColumn};
 
-        $stripeIntegration->{$payloadColumn.'_decoded'} = is_array($payloadValue) ? $payloadValue : json_decode($payloadValue, true);
+        $service->{$payloadColumn.'_decoded'} = is_array($payloadValue) ? $payloadValue : json_decode($payloadValue, true);
 
-        return $this->putServiceIntegrationFound($stripeIntegration);
+        return $this->putServiceIntegrationFound($service);
     }
 
     /**
@@ -85,7 +83,7 @@ trait ManagesAuthCredentials
      * 
      * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
      */
-    public function getStripeClientConnection($serviceIntegrationId = null)
+    public function getStripeClient($serviceIntegrationId = null)
     {
         $stripeSecretKey = $this->getStripeSecretKey($serviceIntegrationId);
 
@@ -157,7 +155,7 @@ trait ManagesAuthCredentials
      *
      * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
      */
-    public function assertStripeServiceIntegrationExists($serviceIntegrationId = null)
+    public function assertStripeServiceExists($serviceIntegrationId = null)
     {
         $this->getStripeServiceIntegration($serviceIntegrationId);
     }
@@ -170,11 +168,9 @@ trait ManagesAuthCredentials
      *
      * @throws \BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration
      */
-    public function assertActiveStripeServiceIntegrationExists($serviceIntegrationId = null)
+    public function assertActiveStripeServiceExists($serviceIntegrationId = null)
     {
-        $isActive = $this->getStripeServiceIntegration($serviceIntegrationId)->active;
-
-        if (! $isActive) {
+        if ($this->getStripeServiceIntegration($serviceIntegrationId)->disabled()) {
             InvalidStripeServiceIntegration::isDisabled($this);
         }
     }
