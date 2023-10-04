@@ -2,7 +2,8 @@
 
 namespace BlackSpot\StripeMultipleAccounts\Relationships;
 
-use BlackSpot\StripeMultipleAccounts\Models\ServiceIntegration;
+use BlackSpot\ServiceIntegrationsContainer\ServiceIntegration;
+use BlackSpot\StripeMultipleAccounts\Exceptions\InvalidStripeServiceIntegration;
 
 trait HasStripeIntegration
 {
@@ -24,7 +25,7 @@ trait HasStripeIntegration
 
   public function hasStripeService()
   {  
-    return $this->searchStripeService() !== null
+    return $this->searchStripeService() !== null;
   }  
 
   public function hasActiveStripeService()
@@ -45,4 +46,47 @@ trait HasStripeIntegration
     if ($service->active()) return $service;
   }
 
+  public function assertStripeServiceExists()
+  {
+    if (! $this->hasStripeService()) {
+      throw InvalidStripeServiceIntegration::notYetCreated($this);
+    }
+  }
+  
+  public function assertActiveStripeServiceExists()
+  {
+    if (! $this->getActiveStripeService()) {      
+      throw InvalidStripeServiceIntegration::isDisabled($this);
+    }
+  }
+
+
+  /**
+   * Scope where has stripe service integration
+   *
+   * @param \Illuminate\Database\Eloquent\Builder $query
+   * @return \Illuminate\Database\Eloquent\Builder
+   */
+  public function scopeWhereHasStripeServiceIntegration($query)
+  {
+    return $query->whereHas('service_integrations', function($query) {
+      $query->where('name', ServiceIntegration::STRIPE_SERVICE)
+            ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
+    });
+  }
+
+  /**
+   * Scope where has stripe service integration active
+   *
+   * @param \Illuminate\Database\Eloquent\Builder $query
+   * @return \Illuminate\Database\Eloquent\Builder
+   */
+  public function scopeWhereHasActiveStripeServiceIntegration($query)
+  {
+    return $query->whereHas('service_integrations', function($query) {
+      $query->where('name', ServiceIntegration::STRIPE_SERVICE)
+            ->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME)
+            ->where('active', true);
+    });
+  }
 }
