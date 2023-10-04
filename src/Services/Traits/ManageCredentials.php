@@ -13,7 +13,7 @@ use Stripe\StripeClient;
  * @method getSecretKey()
  * @method getPublicKey()
  */
-trait ManagesAuthCredentials
+trait ManageCredentials
 {
     /**
      * Get the stripe client connection
