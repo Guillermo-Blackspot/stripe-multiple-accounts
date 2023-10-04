@@ -17,6 +17,11 @@ class InvalidStripeServiceIntegration extends Exception
         return new static(class_basename($owner).' has not a Stripe Service Integration related yet.');
     }
 
+    public static function incorrectProvider($owner)
+    {
+        return new static(class_basename($owner).' is not a Stripe Service Integration provider ('. $owner->name .').');
+    }
+
     public static function isDisabled($owner)
     {
         return new static(class_basename($owner).' has a Stripe Service Integration disabled.');
