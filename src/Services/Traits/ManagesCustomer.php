@@ -45,7 +45,7 @@ trait ManagesCustomer
 
         if ($customer !== null) return $customer;
         
-        return $this->createStripeCustomer($billable, $opts);
+        return $this->createCustomer($billable, $opts);
     }
  
     public function createOrGetCustomer(Model $billable, array $opts = [])
@@ -54,7 +54,7 @@ trait ManagesCustomer
 
         if ($customer !== null) return $customer;
 
-        return $this->createStripeCustomer($serviceIntegrationId, $opts);
+        return $this->createCustomer($serviceIntegrationId, $opts);
     }
     
     public function createCustomer(Model $billable, array $opts = [])
@@ -85,7 +85,9 @@ trait ManagesCustomer
         $stripeCustomer = $this->getClient()->customers->create($opts);
 
         // Connect to local database
-        $localCustomer = $this->stripe_customers()->create([
+        $localCustomer = $billable->stripe_customers()->create([
+            'owner_name'             => $billable->full_name ?? $billable->name,
+            'owner_email'            => $billable->email,
             'service_integration_id' => $service->id,
             'customer_id'            => $stripeCustomer->id
         ]);

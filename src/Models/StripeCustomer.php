@@ -74,7 +74,7 @@ class StripeCustomer extends Model
             }
         }
 
-        return $this->stripeCustomer = $this->getClient()->customers->retrieve($this->customer_id, ['expand' => $expand])
+        return $this->stripeCustomer = $this->getClient()->customers->retrieve($this->customer_id, ['expand' => $expand]);
     }
 
 
@@ -103,7 +103,7 @@ class StripeCustomer extends Model
      * PaymentMethods
      */
 
-    public function createStripeSetupIntent(array $opts = [])
+    public function createSetupIntent(array $opts = [])
     {
         $this->assertExistsAsStripe();
 
@@ -113,7 +113,7 @@ class StripeCustomer extends Model
         return $this->getClient()->setupIntents->create($opts);    
     }
     
-    public function getStripePaymentMethods($type = 'card')
+    public function getPaymentMethods($type = 'card')
     {
         $this->assertExistsAsStripe();
 
@@ -137,7 +137,7 @@ class StripeCustomer extends Model
     public function getOrAddPaymentMethod($paymentMethodId, $type = 'card')
     {
         $stripePaymentMethods = collect(
-            $this->getStripePaymentMethods($type)->data
+            $this->getPaymentMethods($type)->data
         );
 
         $found = $stripePaymentMethods->firstWhere('id', $paymentMethodId);
@@ -209,9 +209,10 @@ class StripeCustomer extends Model
     {
         $this->assertExistsAsStripe();        
 
-        $opts = array_merge(['currency' => 'mxn'], $opts);
+        $opts             = array_merge(['currency' => 'mxn'], $opts);
         $opts['amount']   = $amount;
         $opts['customer'] = $this->customer_id;
+        $opts['expand']   = array_merge(($opts['expand'] ?? []), ['latest_charge']);
 
         return $this->getClient()->paymentIntents->create($opts);
     }
@@ -268,10 +269,10 @@ class StripeCustomer extends Model
 
     public function getClient()
     {
-        $this->getServiceIntegration()->stripe->getClient();
+        return $this->getService()->stripe->getClient();
     }
 
-    public function getServiceIntegration()
+    public function getService()
     {
         if (! $this->relationLoaded('service_integration')) {
             $this->load('service_integration');

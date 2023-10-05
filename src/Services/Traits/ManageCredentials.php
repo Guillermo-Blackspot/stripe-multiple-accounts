@@ -43,13 +43,11 @@ trait ManageCredentials
             throw InvalidStripeServiceIntegration::payloadColumnNotFound($service, $payloadColumn);
         }
 
-        $decoded = $service->{$payloadColumn.'_decoded'};
-
-        if (! isset($decoded['stripe_secret'])) {
+        if (! isset($service->{$payloadColumn}['stripe_secret'])) {
             throw InvalidStripeServiceIntegration::payloadAttributeValueIsNull($service, 'stripe_secret');
         }
 
-        return $decoded['stripe_secret'];
+        return $service->{$payloadColumn}['stripe_secret'];
     }
 
     /**
@@ -69,12 +67,11 @@ trait ManageCredentials
             throw InvalidStripeServiceIntegration::payloadColumnNotFound($service, $payloadColumn);
         }
 
-        $decoded = $service->{$payloadColumn.'_decoded'};
 
-        if (! isset($decoded['stripe_key'])) {
+        if (! isset($service->{$payloadColumn}['stripe_key'])) {
             throw InvalidStripeServiceIntegration::payloadAttributeValueIsNull($service, 'stripe_key');
         }
 
-        return $decoded['stripe_key'];    
+        return $service->{$payloadColumn}['stripe_key'];    
     }
 }

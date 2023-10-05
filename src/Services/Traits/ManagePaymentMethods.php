@@ -42,7 +42,7 @@ trait ManagePaymentMethods
      */
     public function getPaymentMethods(Model $billable, $type = 'card')
     {
-        return $this->getCustomer($billable)->getStripePaymentMethods($type);        
+        return $this->getCustomer($billable)->getPaymentMethods($type);        
     }
 
     /**

@@ -1,4 +1,3 @@
-
 <?php
 
 namespace BlackSpot\StripeMultipleAccounts\Services;
@@ -66,7 +65,7 @@ class StripeService
 
     public function assertServiceExists()
     {
-        if (! $this->hasStripeService()) {
+        if (! $this->hasService()) {
             throw InvalidStripeServiceIntegration::notYetCreated($this);
         }
 
@@ -81,7 +80,7 @@ class StripeService
     {
         $this->assertServiceExists();
 
-        if (! $this->getActiveStripeService()) {
+        if (! $this->serviceIsActive()) {
             throw InvalidStripeServiceIntegration::isDisabled($this);
         }
     }

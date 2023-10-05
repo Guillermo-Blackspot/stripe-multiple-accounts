@@ -4,6 +4,7 @@ namespace BlackSpot\StripeMultipleAccounts\Concerns;
 
 use BlackSpot\ServiceIntegrationsContainer\ServiceProvider as ServiceIntegrationsContainerProvider;
 use BlackSpot\StripeMultipleAccounts\Models\StripeCustomer;
+use BlackSpot\StripeMultipleAccounts\Services\StripeService;
 
 trait HasStripeRelationships
 {    
@@ -20,6 +21,6 @@ trait HasStripeRelationships
 
     public function stripe_customers()
     {
-        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.customer', StripeCustomer::class), 'owner');
+        return $this->hasMany(ServiceIntegrationsContainerProvider::getFromConfig('stripe_models.customer', StripeCustomer::class), 'service_integration_id');
     }
 }
