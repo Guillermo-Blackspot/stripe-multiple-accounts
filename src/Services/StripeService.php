@@ -52,7 +52,7 @@ class StripeService
 
     public function serviceIsActive()
     {
-        return optional($this->getService())->active() == true;
+        return optional($this->getService())->active == true;
     }
 
     public function getServiceIfActive()
@@ -60,7 +60,7 @@ class StripeService
         $service = $this->getService();
         
         if ($service == null) return ;
-        if ($service->active()) return $service;
+        if ($service->active) return $service;
     }
 
     public function assertServiceExists()
