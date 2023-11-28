@@ -54,7 +54,7 @@ trait ManagesCustomer
 
         if ($customer !== null) return $customer;
 
-        return $this->createCustomer($serviceIntegrationId, $opts);
+        return $this->createCustomer($billable, $opts);
     }
     
     public function createCustomer(Model $billable, array $opts = [])
