@@ -18,6 +18,16 @@ trait HasStripeIntegration
 		return $this->stripeServiceInstance = new StripeService($this);
 	}
 
+	public function scopeWithStripeServiceIntegration($query)
+	{
+		return $query->with([
+			'service_integrations' => function($query) {
+				$query->where('name', ServiceIntegration::STRIPE_SERVICE)
+					->where('short_name', ServiceIntegration::STRIPE_SERVICE_SHORT_NAME);
+			}
+		]);
+	}
+
 	public function scopeWhereHasStripeServiceIntegration($query)
 	{
 		return $query->whereHas('service_integrations', function($query) {
